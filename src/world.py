@@ -213,7 +213,7 @@ class World(object):
         if numm != len(self.martians):
             print "Number of martians:", len(self.martians)
 
-    def get_svg(self):
+    def get_svg(self, svg_include = []):
         svg = ["<?xml version=\"1.0\" standalone=\"no\"?>\n",
                "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n",
                "<svg width=\"%f\" height=\"%f\" viewbox=\"0 0 %f %f\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n" % (self.area.dx, self.area.dy, self.area.dx, self.area.dy),
@@ -231,6 +231,7 @@ class World(object):
             svg.extend(self.rover.get_svg())
         except TypeError:
             pass
+        svg.extend(svg_include)
         svg.append("</g>\n</svg>\n")
         return svg
 
