@@ -80,9 +80,9 @@ class Rover(object):
         self.maxhardturn = maxhardturn
         self.acceleration = 1.0
         self.retardation = -1.0
+        self.strategy = SimplePathfollower()
         self.reset()
         self.radius = 0.5
-        self.path = None
         self.threshold = 2 * self.radius
 
     def ok(self):
@@ -113,66 +113,18 @@ class Rover(object):
         self.speed = speed
         if self.path == None:
             #self.path = [self.pos, (0.0, 0.0)]
-            self.path = [self.pos, (100.0, -200.0), (100.0, -100.0), (0.0, 0.0)]
+            self.path = Path([self.pos, (100.0, -200.0), (100.0, -100.0), (0.0, 0.0)])
 
     def set_path(self, path):
         self.path = path
+        self.strategy.set_path(path)
 
-    def current_segment(self):        
-        if len(self.path) > 2:
-            x, y = self.pos
-            p = self.path[1]
-            dx = x - p[0]
-            dy = y - p[1]
-            d = dx * dx + dy * dy
-            if d < self.threshold:
-                self.path = self.path[1:]
-        return self.path[0:2]                        
+    def set_strategy(self, strategy):
+        self.strategy = strategy
+        self.strategy.set_path(self.path)
         
     def calc_command(self):
-        x, y = self.pos
-        r = math.radians(self.direction)
-        seg = self.current_segment()
-        x1, y1= seg[0]
-        x2, y2 = seg[1]
-        print "segment:", (x, y), (x2, y2)
-        h = math.atan2(y2-y, x2-x)
-        a = r - h
-        print "Wanted", a, "current", r, "difference", h
-        cmd = ""
-        absa = abs(a)
-        if absa > 0.7:
-            cmd = "b"
-        elif absa > 0.4:
-            pass
-        else:            
-            #cmd = "a"
-            pass
-
-        if absa > 2.0:
-            # turn hard
-            if a < 0:
-                cmd += "l"
-            else:
-                cmd += "r"
-        elif absa > 0.2:
-            # turn
-            if a < 0:
-                if self.ctl_turn == "L":
-                    cmd += "r"
-                elif self.ctl_turn == "l":
-                    pass
-                else:
-                    cmd += "l"
-            else:
-                if self.ctl_turn == "R":
-                    cmd += "l"
-                elif self.ctl_turn == "r":
-                    pass
-                else:
-                    cmd += "r"            
-        return cmd
-
+        return self.strategy.calc_command(self)
         
 class World(object):
     def __init__(self, initmsg):
