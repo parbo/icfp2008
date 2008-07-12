@@ -1,5 +1,5 @@
 import math
-from vector import Vector
+from vector import Vector, intersection
 import  world as WorldModule
 
 BOULDER_RADIUS_MODIFIER = 0.5
@@ -87,23 +87,8 @@ def find_obstacles(start, goal, world):
             d = abs(vc - vs)
             obstacles.append((d, crater))
     return obstacles
-    
-def intersection(start_vector, goal_vector, center, radius):
-    xc, yc = center
-    # Vector pointing at center:
-    vc = Vector(xc, yc)
-    # Vector (start->goal):
-    vsg = (goal_vector - start_vector).normalize()
-    # Vector (start->center):
-    vsc = vc - start_vector
-    # Intersection test:
-    s = vsg * vsc
-    if s < 0:
-        return False
-    else:
-        m2 = abs(vsc) ** 2 - s ** 2
-        return radius ** 2 > m2
-        
+  
+      
     
 if __name__ == '__main__':
     print find_new_nodes((0.0, 0.0), (5.0, 0.0), 1.0)
