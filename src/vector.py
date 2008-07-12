@@ -47,35 +47,8 @@ class Vector(object):
         return math.acos(self * other / (abs(self) * abs(other)))
 
     def point(self):
-        return (self.x, self.y)           
-
-
-class Sphere(Primitive):                                                                                      
-    def intersect(self, raypos, raydir):                                                                      
-        tr = self.transform                                                                                   
-        raydir = tr.inv_transform_vector(raydir)                                                              
-        scale = 1.0 / length(raydir)                                                                          
-        raydir = mul(raydir, scale) # normalize                                                               
-        raypos = tr.inv_transform_point(raypos)                                                               
-        s = dot(neg(raypos), raydir)                                                                          
-        lsq = dot(raypos, raypos)                                                                             
-        if s < 0.0 and lsq > 1.0:                                                                             
-            return []                                                                                         
-        msq = lsq - s * s                                                                                     
-        if msq > 1.0:                                                                                         
-            return []                                                                                         
-        q = math.sqrt(1.0 - msq)                                                                              
-        t1 = s + q                                                                                            
-        t2 = s - q                                                                                            
-        if t1 > t2:                                                                                           
-            t1, t2 = t2, t1                                                                                   
-        ts = []                                                                                               
-        if t1 > 0.0:                                                                                          
-            ts.append(Intersection(scale, t1, raypos, raydir, self, Intersection.ENTRY, 0))                   
-        if t2 > 0.0:                                                                                          
-            ts.append(Intersection(scale, t2, raypos, raydir, self, Intersection.EXIT, 0))                    
-        return ts                                                                                             
-                                                                                                            
+        return (self.x, self.y)          
+                                                      
         
 if __name__ == '__main__':
     v1 = Vector(1, 2)
