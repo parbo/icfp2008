@@ -45,6 +45,9 @@ class Vector(object):
         
     def angle(self, other):
         return math.acos(self * other / (abs(self) * abs(other)))
+        
+    def point(self):
+        return (self.x, self.y)
             
             
 if __name__ == '__main__':
