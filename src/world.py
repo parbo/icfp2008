@@ -227,7 +227,10 @@ class World(object):
             svg.extend(m.get_svg())
         for m in self.old_martians:
             svg.extend(m.get_svg())
-        svg.extend(self.rover.get_svg())
+        try:
+            svg.extend(self.rover.get_svg())
+        except TypeError:
+            pass
         svg.append("</g>\n</svg>\n")
         return svg
 
