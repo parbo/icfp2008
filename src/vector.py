@@ -62,16 +62,21 @@ def intersection(start_vector, goal_vector, center, radius):
     # Vector pointing at center:
     vc = Vector(xc, yc)
     # Vector (start->goal):
-    vsg = (goal_vector - start_vector).normalize()
+    vsg = (goal_vector - start_vector)
+    # Normalized vector (start->goal):
+    vsgn = vsg.normalize()
     # Vector (start->center):
     vsc = vc - start_vector
     # Intersection test:
-    s = vsg * vsc
+    s = vsgn * vsc
     if s < 0:
         return False
-    else:
-        m2 = abs(vsc) ** 2 - s ** 2
-        return radius ** 2 > m2
+    m2 = abs(vsc) ** 2 - s ** 2
+    r2 = radius ** 2
+    if m2 >= r2:
+        return False
+    q = math.sqrt(r2 - m2)
+    return (s - q) < abs(vsg)
 
 if __name__ == '__main__':
     v1 = Vector(1, 2)
