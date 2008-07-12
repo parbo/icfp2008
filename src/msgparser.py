@@ -1,5 +1,11 @@
 TYPE_INIT = 'I'
 TYPE_TELEMETRY = 'T'
+TYPE_EVENT_BOULDER = 'B'
+TYPE_EVENT_CRATER = 'C'
+TYPE_EVENT_KILL = 'K'
+TYPE_EVENT_SUCCESS = 'S'
+TYPE_END_OF_RUN = 'E'
+
 
 class InitMsg(object):
     def __init__(self, msg):
@@ -55,3 +61,50 @@ class TelemetryMsg(object):
             else:
                 raise ValueError('Invalid object type.')
         return
+        
+        
+class EventMsg(object):
+    def __init__(self, msg):
+        tokens = msg.split()
+        self.type = tokens[0]
+        self.time = float(tokens[1])
+        return
+        
+        
+class EndOfRunMsg(object):
+    def __init__(self, msg):
+        tokens = msg.split()
+        self.type = TYPE_END_OF_RUN
+        self.time = float(tokens[1])
+        self.score = float(tokens[2])
+        return
+        
+
+def parse(msg):
+    try:
+        if msg.startswith('I'):
+            return InitMsg(msg)
+        elif msg.startswith('T'):
+            return TelemetryMsg(msg)
+        elif msg[0] in 'BCKS':
+            return EventMsg(msg)
+        elif msg.startswith('E'):
+            return EndOfRunMsg(msg)
+        else:
+            raise ValueError('Illegal msg.')
+    except (IndexError, ValueError), err:
+        print 'Bad message:', err
+        return None
+        
+        
+if __name__ == '__main__':
+    print parse('I 2000 2000 10000 2.0 20.0 1.0 3.0 6.0')
+    print parse('T 3450 aL -234.040 811.100 47.5 8.450 b -220.000 750.000 12.000 m -240.000 812.000 90.0 9.100')
+    print parse('B 1234')
+    print parse('C 1234')
+    print parse('K 1234')
+    print parse('S 1234')
+    print parse('E 1234 1234')
+    print parse('Bad message')
+    print parse('T 1234')
+    
