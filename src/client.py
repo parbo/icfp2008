@@ -2,6 +2,21 @@ import socket
 import Queue
 import threading
 
+class RoverControl(object):
+    def __init__(self, host, port):
+        self.roverclient = RoverClient(host, port)
+        self.world = None
+
+    def run(self):
+        rc = self.roverclient
+        rc.start()
+        while rc.running:
+            try:
+                m = r.recvq.get(True, 2)
+                self.dispatch(m)
+            except Queue.Empty:
+                pass
+
 class RoverClient(object):
     def __init__(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
