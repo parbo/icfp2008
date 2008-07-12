@@ -1,10 +1,11 @@
 import math
 
 class Vector(object):
-    def __init__(self, x, y):
+    def __init__(self, x, y = None):
+        if isinstance(x, tuple):
+            x, y = x
         self.x = float(x)
         self.y = float(y)
-        return
         
     def __str__(self):
         return 'Vector(' + str(self.x) + ', ' + str(self.y) + ')'

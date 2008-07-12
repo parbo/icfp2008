@@ -1,6 +1,5 @@
 import sys
 import json
-import path
 import world
 import msgparser
 
@@ -45,7 +44,11 @@ def create_svg(pathlist):
     return svg
 
 if __name__ == '__main__':
+    testmod = "path"
     if len(sys.argv) > 1:
+        if len(sys.argv) > 2:
+            testmod = sys.argv[2]
+        path = __import__(testmod)
         map_filename = sys.argv[1]
         svg_filename = map_filename + '.svg'
         w = create_world(map_filename)
