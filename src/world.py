@@ -34,7 +34,11 @@ class Martian(object):
         self.update(pos, speed, direction, time)    
 
     def get_svg(self):
-        svg = []
+        svg = ["<polyline fill=\"none\" stroke=\"red\" stroke-width=\"1\" points=\""]
+        for p in self.positions:
+            x, y = p[0]
+            svg.append("%f, %f " % (x, y))
+        svg.append("\" />")
         x, y = self.pos
         svg.append("<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#0000ff"))
         return svg
@@ -78,12 +82,22 @@ class Rover(object):
         self.retardation = -1.0
         self.update("-", "-", (0.0, 0.0), 0.0, 0.0)
         self.radius = 0.5
+        self.old = None
 
     def get_svg(self):
+        svg = ["<polyline fill=\"none\" stroke=\"green\" stroke-width=\"1\" points=\""]
+        for r in self.old:
+            x, y = r[2]
+            svg.append("%f, %f " % (x, y))
+        svg.append("\" />")
         x, y = self.pos
         return ["<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#ffff00")]
 
     def update(self, ctl_acc, ctl_turn, pos, direction, speed):
+        if self.old != None:
+            self.old.append((self.ctl_acc, self.ctl_turn, self.pos, self.direction, self.speed))
+        else:
+            self.old = []
         self.ctl_acc = ctl_acc
         self.ctl_turn = ctl_turn
         self.pos = pos
