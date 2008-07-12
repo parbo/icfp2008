@@ -37,8 +37,9 @@ class SimplePathFollower(BaseStrategy):
         elif absa > 0.4:
             pass
         else:            
-            #cmd = "a"
-            pass
+            cmd = "a"
+
+        cmd = ""
 
         if absa > 2.0:
             # turn hard
