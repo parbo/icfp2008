@@ -1,24 +1,29 @@
 import math
 from vector import Vector
+import  world as WorldModule
 
 BOULDER_RADIUS_MODIFIER = 0.5
 CRATER_RADIUS_MODIFIER = 0.2
 
 def find_path(start, goal, world, obstacles = None):
     # Find obstacles along the path from start to goal.
-    if obstacles is None:
-        obstacles = find_obstacles(start, goal, world)
+    obstacles = find_obstacles(start, goal, world)
     if len(obstacles) > 0:
         # Sort obstacles and take the one which is closest to the start point.
         obstacles.sort()
         # Calculate new paths passing both sides of the closest obstacle.
-        obstacle = obstacles[0]
-        n1, n2 = find_new_nodes(start, obstacle.pos, obstacle.radius)
+        distance, obstacle = obstacles[0]
+        modifier = 0
+        if isinstance(obstacle, WorldModule.Boulder):
+            modifier = BOULDER_RADIUS_MODIFIER
+        elif isinstance(obstacle, WorldModule.Crater):
+            modifier = CRATER_RADIUS_MODIFIER
+        n1, n2 = find_new_nodes(start, obstacle.pos, obstacle.radius + modifier)
         # Find the number of obstacles along the new paths.
-        obstacles_start_n1 = find_obstacles(start, n1)
-        obstacles_start_n2 = find_obstacles(start, n2)
-        obstacles_n1_goal = find_obstacles(n1, goal)
-        obstacles_n2_goal = find_obstacles(n2, goal)
+        obstacles_start_n1 = find_obstacles(start, n1, world)
+        obstacles_start_n2 = find_obstacles(start, n2, world)
+        obstacles_n1_goal = find_obstacles(n1, goal, world)
+        obstacles_n2_goal = find_obstacles(n2, goal, world)
         obstacle_num_1 = len(obstacles_start_n1) + len(obstacles_n1_goal)
         obstacle_num_2 = len(obstacles_start_n2) + len(obstacles_n2_goal)
         # Select the path with the fewest obstacles and discard the other one.
@@ -41,18 +46,20 @@ def find_new_nodes(start, center, radius):
     vs = Vector(xs, ys)
     # Vector pointing at center:
     vc = Vector(xc, yc)
+    # Vector pointing from start to center
+    vsc = vc - vs
     # Distance from start to center:
-    dsc = abs(vc - vs)
+    dsc = abs(vsc)
     # Distance from start to tangent:
     dst = math.sqrt(dsc ** 2 - radius ** 2)
     # Angle between vector(start->center) and vector(start->tangent):
-    a = math.acos(dst / dsc)
-    # Normalized vector pointing at center:
-    vcn = vc.normalize()
+    a = 1.01 * math.acos(dst / dsc)
+    # Normalized vector pointing from start to center:
+    vcn = vsc * (1.0 / dsc)
     # Vectors pointing in the direction of the tangents, but with an extra distance
     # added (1.0 * radius). These are the new nodes:
-    vt1 = (dst + radius) * vcn.rotate(a)
-    vt2 = (dst + radius) * vcn.rotate(-a)
+    vt1 = vs + (dst + radius) * vcn.rotate(a)
+    vt2 = vs + (dst + radius) * vcn.rotate(-a)
     return (vt1.point(), vt2.point())
     
 def find_obstacles(start, goal, world):
@@ -86,7 +93,7 @@ def intersection(start_vector, goal_vector, center, radius):
     # Vector pointing at center:
     vc = Vector(xc, yc)
     # Vector (start->goal):
-    vsg = goal_vector - start_vector
+    vsg = (goal_vector - start_vector).normalize()
     # Vector (start->center):
     vsc = vc - start_vector
     # Intersection test:

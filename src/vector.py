@@ -38,7 +38,8 @@ class Vector(object):
         return math.sqrt(self.x ** 2 + self.y ** 2)
         
     def normalize(self):
-        return Vector(self.x / abs(self), self.y / abs(self))
+        a = abs(self)
+        return Vector(self.x / a, self.y / a)
         
     def rotate(self, angle):
         return Vector(self.x * math.cos(angle) - self.y * math.sin(angle), self.x * math.sin(angle) + self.y * math.cos(angle))

@@ -10,15 +10,18 @@ class RoverControl(object):
         self.roverclient = RoverClient(host, port)
         self.world = None
 
+    def _control(self):
+        if self.world and self.world.rover and self.world.rover.ok():
+            c = self.world.rover.calc_command()
+            if c:
+                self.roverclient.sendq.put(c)
+
     def _run_control(self):
         print "Start control thread"
         rc = self.roverclient
         try:
             while rc.running:
-                if self.world and self.world.rover and self.world.rover.ok():
-                    c = self.world.rover.calc_command()
-                    if c:
-                        rc.sendq.put(c)
+                self._control()
                 #time.sleep(0.5)
         except Exception, e:
             print e
@@ -27,16 +30,18 @@ class RoverControl(object):
     def run(self):
         rc = self.roverclient
         rc.start()
-        self.controlthread = threading.Thread(target=self._run_control)
-        self.controlthread.setDaemon(True)
-        self.controlthread.start()
+        #self.controlthread = threading.Thread(target=self._run_control)
+        #self.controlthread.setDaemon(True)
+        #self.controlthread.start()
         while rc.running:
             try:
-                m = mp.parse(rc.recvq.get(True, 2))
-                self.update_world(m)
+                while True:
+                    m = mp.parse(rc.recvq.get(False))
+                    self.update_world(m)
             except Queue.Empty:
                 pass
-        self.controlthread.join()
+            self._control()
+        #self.controlthread.join()
         rc.stop()
 
     def update_world(self, m):
