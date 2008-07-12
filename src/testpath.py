@@ -49,8 +49,13 @@ if __name__ == '__main__':
         map_filename = sys.argv[1]
         svg_filename = map_filename + '.svg'
         w = create_world(map_filename)
-        start = (w.area.left, w.area.top)
-        pathlist = path.find_path(start, (0.0, 0.0), w)
+        start = (w.area.left, w.area.bottom)
+        #goal = (w.area.left / 2, w.area.bottom / 2)
+        goal = (0.0, 0.0)
+        pathlist = path.find_path(start, goal, w)
+        print 'Found path with ' + str(len(pathlist) - 1) + ' segments.'
+        for p in pathlist:
+            print p
         write_svg(svg_filename, w, create_svg(pathlist))
     else:
         print 'Map name missing.'
