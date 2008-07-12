@@ -44,7 +44,7 @@ class SimplePathFollower(BaseStrategy):
         else:            
             cmd = "a"
 
-        if absa > 2.0:
+        if absa > 0.7:
             # turn hard
             if a > 0:
                 cmd += "l"
