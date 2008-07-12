@@ -3,6 +3,7 @@ import Queue
 import threading
 import msgparser as mp
 import world
+import time
 
 class RoverControl(object):
     def __init__(self, host, port):
@@ -14,9 +15,11 @@ class RoverControl(object):
         rc = self.roverclient
         try:
             while rc.running:
-                if self.world and self.world.rover:
+                if self.world and self.world.rover and self.world.rover.ok():
                     c = self.world.rover.calc_command()
-                    rc.sendq.put(c)
+                    if c:
+                        rc.sendq.put(c)
+                #time.sleep(0.01)
         except Exception, e:
             print e
 

@@ -80,18 +80,26 @@ class Rover(object):
         self.maxhardturn = maxhardturn
         self.acceleration = 1.0
         self.retardation = -1.0
-        self.update("-", "-", (0.0, 0.0), 0.0, 0.0)
+        self.reset()
         self.radius = 0.5
+        self.path = None
+        self.threshold = 2 * self.radius
+
+    def ok(self):
+        return self.old != None
+
+    def reset(self):
         self.old = None
 
     def get_svg(self):
-        svg = ["<polyline fill=\"none\" stroke=\"green\" stroke-width=\"1\" points=\""]
+        svg = ["<polyline fill=\"none\" stroke=\"blue\" stroke-width=\"1\" points=\""]
         for r in self.old:
             x, y = r[2]
             svg.append("%f, %f " % (x, y))
         svg.append("\" />")
         x, y = self.pos
-        return ["<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#ffff00")]
+        svg.append("<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#ffff00"))
+        return svg
 
     def update(self, ctl_acc, ctl_turn, pos, direction, speed):
         if self.old != None:
@@ -103,9 +111,67 @@ class Rover(object):
         self.pos = pos
         self.direction = direction
         self.speed = speed
+        if self.path == None:
+            #self.path = [self.pos, (0.0, 0.0)]
+            self.path = [self.pos, (100.0, -200.0), (100.0, -100.0), (0.0, 0.0)]
+
+    def set_path(self, path):
+        self.path = path
+
+    def current_segment(self):        
+        if len(self.path) > 2:
+            x, y = self.pos
+            p = self.path[1]
+            dx = x - p[0]
+            dy = y - p[1]
+            d = dx * dx + dy * dy
+            if d < self.threshold:
+                self.path = self.path[1:]
+        return self.path[0:2]                        
         
     def calc_command(self):
-        return "a"
+        x, y = self.pos
+        r = math.radians(self.direction)
+        seg = self.current_segment()
+        x1, y1= seg[0]
+        x2, y2 = seg[1]
+        print "segment:", (x, y), (x2, y2)
+        h = math.atan2(y2-y, x2-x)
+        a = r - h
+        print "Wanted", a, "current", r, "difference", h
+        cmd = ""
+        absa = abs(a)
+        if absa > 0.7:
+            cmd = "b"
+        elif absa > 0.4:
+            pass
+        else:            
+            #cmd = "a"
+            pass
+
+        if absa > 2.0:
+            # turn hard
+            if a < 0:
+                cmd += "l"
+            else:
+                cmd += "r"
+        elif absa > 0.2:
+            # turn
+            if a < 0:
+                if self.ctl_turn == "L":
+                    cmd += "r"
+                elif self.ctl_turn == "l":
+                    pass
+                else:
+                    cmd += "l"
+            else:
+                if self.ctl_turn == "R":
+                    cmd += "l"
+                elif self.ctl_turn == "r":
+                    pass
+                else:
+                    cmd += "r"            
+        return cmd
 
         
 class World(object):
@@ -116,7 +182,7 @@ class World(object):
                            initmsg.max_sensor, 
                            initmsg.max_speed, 
                            initmsg.max_turn, 
-                           initmsg.max_hard_turn)
+                           initmsg.max_hard_turn)                           
         self.boulders = {}                   
         self.craters = {}                   
         self.martians = []
@@ -128,7 +194,7 @@ class World(object):
         f.write("".join(self.get_svg()))
         self.martians = []
         self.old_martians = []
-        self.rover.update("-", "-", (0.0, 0.0), 0.0, 0.0)
+        self.rover.reset()
         self.runs += 1
 
     def find_martian(self, pos, time):
@@ -178,7 +244,7 @@ class World(object):
                 m.update((x, y), speed, direction, tmsg.time)
             else:
                 self.martians.append(Martian((x, y), speed, direction, tmsg.time))
-        self.remove_old_martians()
+        self.remove_martians()
         if numm != len(self.martians):
             print "Number of martians:", len(self.martians)
 
@@ -186,7 +252,8 @@ class World(object):
         svg = ["<?xml version=\"1.0\" standalone=\"no\"?>\n",
                "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n",
                "<svg width=\"%f\" height=\"%f\" viewbox=\"0 0 %f %f\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n" % (self.area.dx, self.area.dy, self.area.dx, self.area.dy),
-               "<g transform=\"translate(%f, %f) scale(1.0, -1.0)\" style=\"fill-opacity:1.0; stroke:black; stroke-width:1;\">\n" % (self.area.dx/2.0, self.area.dy/2.0)]
+               "<g transform=\"translate(%f, %f) scale(1.0, -1.0)\" style=\"fill-opacity:1.0; stroke:black; stroke-width:1;\">\n" % (self.area.dx/2.0, self.area.dy/2.0),
+               "<rect x=\"0\" y=\"0\" width=\"%f\" height=\"%f\" style=\"fill:#ffffff;\"/>"]
         for k, b in self.boulders.items():
             svg.extend(b.get_svg())
         for k, c in self.craters.items():
