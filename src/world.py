@@ -45,7 +45,7 @@ class Martian(object):
         return svg
 
     def update(self, pos, speed, direction, time):
-        print "Martian updated:", pos, speed, direction, time
+        #print "Martian updated:", pos, speed, direction, time
         self.positions.append((pos, speed, direction, time))
 
     def predict(self, time):
@@ -73,7 +73,8 @@ class Martian(object):
     time = property(_get_time)
 
 class Rover(object):
-    def __init__(self, minsensor, maxsensor, maxspeed, maxturn, maxhardturn):
+    def __init__(self, world, minsensor, maxsensor, maxspeed, maxturn, maxhardturn):
+        self.world = world
         self.minsensor = minsensor
         self.maxsensor = maxsensor
         self.maxspeed = maxspeed
@@ -92,7 +93,8 @@ class Rover(object):
     def reset(self):
         self.path = None
         self.old = None
-        self.calc_needed = False
+        self.calc_needed = True
+        self.path_needed = True
 
     def get_svg(self):
         svg = ["<polyline fill=\"none\" stroke=\"blue\" stroke-width=\"1\" points=\""]
@@ -114,19 +116,20 @@ class Rover(object):
         self.pos = pos
         self.direction = direction
         self.speed = speed
-        if self.path == None:
-            self.path = strategies.Path([self.pos, (0.0, 0.0)])
-            #self.path = strategies.Path([self.pos, (100.0, -200.0), (100.0, -100.0), (0.0, 0.0)])
         self.calc_needed = True
 
-    def set_path(self, path):
-        self.path = path
+    def schedule_calc_path(self):
+        self.path_needed = True
 
     def set_strategy(self, strategy):
         self.strategy = strategy
         
     def calc_command(self):
-        if not self.calc_needed:
+        if self.path_needed:
+            self.path = self.strategy.calc_path(self)
+            print self.path.points
+            self.path_needed = False
+        if not self.calc_needed or self.path == None:
             return ""
         cmd = self.strategy.calc_command(self)
         self.calc_needed = False
@@ -136,7 +139,8 @@ class World(object):
     def __init__(self, initmsg):
         self.area = Area(initmsg.dx, initmsg.dy)
         self.time_limit = initmsg.time_limit
-        self.rover = Rover(initmsg.min_sensor, 
+        self.rover = Rover(self, 
+                           initmsg.min_sensor, 
                            initmsg.max_sensor, 
                            initmsg.max_speed, 
                            initmsg.max_turn, 
@@ -190,10 +194,12 @@ class World(object):
             x, y, radius = b
             if (x, y) not in self.boulders:                
                 self.boulders[(x, y)] = Boulder((x, y), radius)
+                self.rover.schedule_calc_path()
         for c in tmsg.craters:
             x, y, radius = c
             if (x, y) not in self.craters:
                 self.craters[(x, y)] = Crater((x, y), radius)
+                self.rover.schedule_calc_path()
         numm = len(self.martians)
         for e in tmsg.enemies:
             x, y, direction, speed = e
@@ -202,6 +208,7 @@ class World(object):
                 m.update((x, y), speed, direction, tmsg.time)
             else:
                 self.martians.append(Martian((x, y), speed, direction, tmsg.time))
+            self.rover.schedule_calc_path()
         self.remove_martians()
         if numm != len(self.martians):
             print "Number of martians:", len(self.martians)

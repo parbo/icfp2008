@@ -1,5 +1,6 @@
 import math
 from vector import Vector 
+import path
 
 class Path(object):
     def __init__(self, points):
@@ -17,11 +18,17 @@ class Path(object):
         return self.points[0:2]                           
 
 class BaseStrategy(object):
+    def calc_path(self, rover):
+        return Path([rover.pos, (0.0, 0.0)])
+
     def calc_command(self, rover):
         return ""
         
 
 class SimplePathFollower(BaseStrategy):
+    def calc_path(self, rover):
+        return Path(path.find_path(rover.pos, (0.0, 0.0), rover.world))
+
     def calc_command(self, rover):
         x, y = rover.pos
         nowvec = Vector(x, y)
@@ -31,10 +38,10 @@ class SimplePathFollower(BaseStrategy):
         x1, y1 = seg[0]
         x2, y2 = seg[1]
         goalvec = Vector(x2, y2)
-        print "segment:", seg
-        print "pos:", x, y
+        #print "segment:", seg
+        #print "pos:", x, y
         a = dirvec.angle_signed(goalvec - nowvec)
-        print "difference", a
+        #print "difference", a
         cmd = ""
         absa = abs(a)
         if absa > 0.7:
@@ -67,6 +74,6 @@ class SimplePathFollower(BaseStrategy):
                 else:
                     cmd += "r"            
 
-        print rover.ctl_turn
-        print cmd
+        #print rover.ctl_turn
+        #print cmd
         return cmd

@@ -22,6 +22,7 @@ class RoverControl(object):
                 #time.sleep(0.5)
         except Exception, e:
             print e
+            raise
 
     def run(self):
         rc = self.roverclient
