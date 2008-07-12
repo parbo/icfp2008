@@ -1,4 +1,5 @@
 import math
+import strategies
 
 class Area(object):
     def __init__(self, dx, dy):
@@ -80,10 +81,10 @@ class Rover(object):
         self.maxhardturn = maxhardturn
         self.acceleration = 1.0
         self.retardation = -1.0
-        self.strategy = SimplePathfollower()
+        self.strategy = strategies.SimplePathFollower()
+        self.path = None
         self.reset()
         self.radius = 0.5
-        self.threshold = 2 * self.radius
 
     def ok(self):
         return self.old != None
@@ -113,15 +114,13 @@ class Rover(object):
         self.speed = speed
         if self.path == None:
             #self.path = [self.pos, (0.0, 0.0)]
-            self.path = Path([self.pos, (100.0, -200.0), (100.0, -100.0), (0.0, 0.0)])
+            self.path = strategies.Path([self.pos, (100.0, -200.0), (100.0, -100.0), (0.0, 0.0)])
 
     def set_path(self, path):
         self.path = path
-        self.strategy.set_path(path)
 
     def set_strategy(self, strategy):
         self.strategy = strategy
-        self.strategy.set_path(self.path)
         
     def calc_command(self):
         return self.strategy.calc_command(self)
