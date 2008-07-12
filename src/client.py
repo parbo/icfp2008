@@ -1,21 +1,57 @@
 import socket
 import Queue
 import threading
+import msgparser as mp
+import world
 
 class RoverControl(object):
     def __init__(self, host, port):
         self.roverclient = RoverClient(host, port)
         self.world = None
 
+    def _run_control(self):
+        print "Start control thread"
+        rc = self.roverclient
+        try:
+            while rc.running:
+                if self.world and self.world.rover:
+                    c = self.world.rover.calc_command()
+                    rc.sendq.put(c)
+        except Exception, e:
+            print e
+
     def run(self):
         rc = self.roverclient
         rc.start()
+        self.controlthread = threading.Thread(target=self._run_control)
+        self.controlthread.setDaemon(True)
+        self.controlthread.start()
         while rc.running:
             try:
-                m = r.recvq.get(True, 2)
-                self.dispatch(m)
+                m = mp.parse(rc.recvq.get(True, 2))
+                self.update_world(m)
             except Queue.Empty:
                 pass
+        self.controlthread.join()
+        rc.stop()
+
+    def update_world(self, m):
+        try:
+            #print m
+            if m.type == mp.TYPE_INIT:
+                self.world = world.World(m)
+            elif m.type == mp.TYPE_TELEMETRY:
+                self.world.update(m)
+            elif m.type == mp.TYPE_END_OF_RUN:
+                self.world.reset()
+            else:
+                # not handled yet
+                pass
+        except Exception, e:
+            print e
+            raise
+            pass
+            
 
 class RoverClient(object):
     def __init__(self, host, port):
@@ -67,12 +103,5 @@ class RoverClient(object):
 
 if __name__=="__main__":
     import sys
-    r = RoverClient(sys.argv[1], int(sys.argv[2]))
-    r.start()    
-    while r.running:
-        try:
-            print r.recvq.get(True, 2)
-            r.sendq.put("a")
-        except Queue.Empty:
-            pass
-    r.stop()
+    r = RoverControl(sys.argv[1], int(sys.argv[2]))
+    r.run()    
