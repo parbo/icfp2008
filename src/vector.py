@@ -46,10 +46,16 @@ class Vector(object):
     def angle(self, other):
         return math.acos(self * other / (abs(self) * abs(other)))
 
+    def angle_signed(self, other):
+        a = self.angle(other)
+        cross = self.x * other.y - self.y * other.x
+        if cross > 0.0:
+            return a
+        return -a
+
     def point(self):
-        return (self.x, self.y)          
-                                                      
-        
+        return (self.x, self.y)           
+
 if __name__ == '__main__':
     v1 = Vector(1, 2)
     v2 = Vector(4, 5)

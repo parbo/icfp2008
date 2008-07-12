@@ -19,7 +19,7 @@ class RoverControl(object):
                     c = self.world.rover.calc_command()
                     if c:
                         rc.sendq.put(c)
-                #time.sleep(0.01)
+                time.sleep(0.1)
         except Exception, e:
             print e
 

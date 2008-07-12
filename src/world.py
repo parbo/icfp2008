@@ -113,8 +113,8 @@ class Rover(object):
         self.direction = direction
         self.speed = speed
         if self.path == None:
-            #self.path = [self.pos, (0.0, 0.0)]
-            self.path = strategies.Path([self.pos, (100.0, -200.0), (100.0, -100.0), (0.0, 0.0)])
+            self.path = strategies.Path([self.pos, (0.0, 0.0)])
+            #self.path = strategies.Path([self.pos, (100.0, -200.0), (100.0, -100.0), (0.0, 0.0)])
 
     def set_path(self, path):
         self.path = path
