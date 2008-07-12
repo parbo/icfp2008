@@ -1,11 +1,11 @@
 import math
 from vector import Vector, intersection
-import  world as WorldModule
+import world as WorldModule
 
 BOULDER_RADIUS_MODIFIER = 0.5
 CRATER_RADIUS_MODIFIER = 0.2
 
-def find_path(start, goal, world, obstacles = None):
+def find_path(start, goal, world):
     # Find obstacles along the path from start to goal.
     obstacles = find_obstacles(start, goal, world)
     if len(obstacles) > 0:
@@ -29,12 +29,12 @@ def find_path(start, goal, world, obstacles = None):
         # Select the path with the fewest obstacles and discard the other one.
         # Calculate new path segments recursively.
         if obstacle_num_1 < obstacle_num_2:
-            path = find_path(start, n1, world, obstacles_start_n1)[:-1]
-            path.extend(find_path(n1, goal, world, obstacles_n1_goal))
+            path = find_path(start, n1, world)[:-1]
+            path.extend(find_path(n1, goal, world))
             return path
         else:
-            path = find_path(start, n2, world, obstacles_start_n2)[:-1]
-            path.extend(find_path(n2, goal, world, obstacles_n2_goal))
+            path = find_path(start, n2, world)[:-1]
+            path.extend(find_path(n2, goal, world))
             return path
     else:
         return [start, goal]
