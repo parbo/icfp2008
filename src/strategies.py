@@ -84,36 +84,131 @@ class SimplePathFollower(BaseStrategy):
         
         
 class PidPathFollower(BaseStrategy):
-    def __init__(self, p, i, d):
+    def __init__(self, rover, p, i, d):
+        self.rover = rover
         self.p = p
         self.i = i
         self.d = d
         self.errint = 0.0
-        self.lasterr = 0.0
+        self.last_ang_err = 0.0
         self.time = 0.0
-        self.turn_history = deque(10 * ['-'])
         self.ctl_acc = ''
-        self.ctl_turn = ''
         self.prev_direction = None
-        self.prev_rotv = None
+        self.est_ang_acc = 0.0      # Estimated angular acceleration [radians / s^2]
+        self.maxturn = math.radians(rover.maxturn)
+        self.maxhardturn = math.radians(rover.maxhardturn)
+        self.current_turn = ''
+        self.current_turn_rate = 0.0  # Calculated rate of turn [radians / s]
         return
         
     def calc_path(self, rover):
         return Path(path.find_path(rover.pos, (0.0, 0.0), rover.world))
+        
+    def calc_wanted_ang_vel(self, ang_err, dt):
+        # Turn control.
+        wanted_turn_rate = 0.0
+        
+        try:
+            wanted_turn_rate = self.p * ang_err + self.i * self.errint + self.d * (ang_err - self.last_ang_err) / dt
+        except ZeroDivisionError: 
+            pass
+        
+        if wanted_turn_rate > self.maxhardturn:
+            wanted_turn_rate = self.maxhardturn
+        if wanted_turn_rate < -self.maxhardturn:
+            wanted_turn_rate = -self.maxhardturn
+            
+        return wanted_turn_rate
+        
+    def calc_turn_command(self, wanted_turn_rate, dt):
+        estimated_turn_rate = self.current_turn_rate
+        turn_rate_change = dt * self.est_ang_acc
+        turn_cmd = ''
+        
+        if self.current_turn == 'l':
+            if self.current_turn_rate < self.maxturn:
+                estimated_turn_rate = min(estimated_turn_rate + turn_rate_change, self.maxturn)
+            else:
+                estimated_turn_rate = max(estimated_turn_rate - turn_rate_change, self.maxturn)
+        elif self.current_turn == 'L':
+            estimated_turn_rate = min(estimated_turn_rate + turn_rate_change, self.maxhardturn)
+        elif self.current_turn == 'r':
+            if self.current_turn_rate > -self.maxturn:
+                estimated_turn_rate = max(estimated_turn_rate - turn_rate_change, -self.maxturn)
+            else:
+                estimated_turn_rate = min(estimated_turn_rate + turn_rate_change, -self.maxturn)
+        elif self.current_turn == 'R':
+            estimated_turn_rate = max(estimated_turn_rate - turn_rate_change, -self.maxhardturn)
+        
+        diff = wanted_turn_rate - estimated_turn_rate
+        
+        if wanted_turn_rate == self.maxturn:
+            # Max turn left.
+            turn_cmd = 'l'
+        elif wanted_turn_rate > self.maxturn:
+            # Hard turn left.
+            if diff > 0:
+                turn_cmd = 'l'
+            elif self.current_turn == 'L':
+                turn_cmd = 'r'
+        elif wanted_turn_rate > 0.5 * turn_rate_change:
+            # Soft turn left.
+            if diff > 0:
+                if self.current_turn == 'L':
+                    turn_cmd = 'r'
+                elif self.current_turn != 'l':
+                    turn_cmd = 'l'
+            else:
+                if self.current_turn in 'lL':
+                    turn_cmd = 'r'
+                elif self.current_turn in 'rR':
+                    turn_cmd = 'l'
+        elif wanted_turn_rate == -self.maxturn:
+            # Max turn right.
+            turn_cmd = 'r'
+        elif wanted_turn_rate < -self.maxturn:
+            # Hard turn right.
+            if diff < 0:
+                turn_cmd = 'r'
+            elif self.current_turn == 'R':
+                turn_cmd = 'l'
+        elif wanted_turn_rate < 0.5 * turn_rate_change:
+            # Soft turn right.
+            if diff < 0:
+                if self.current_turn == 'R':
+                    turn_cmd = 'l'
+                elif self.current_turn != 'r':
+                    turn_cmd = 'r'
+            else:
+                if self.current_turn in 'rR':
+                    turn_cmd = 'l'
+                elif self.current_turn in 'lL':
+                    turn_cmd = 'r'
+        else:
+            # No turn
+            if self.current_turn in 'rR':
+                turn_cmd = 'l'
+            elif self.current_turn in 'lL':
+                turn_cmd = 'r'
+             
+        return turn_cmd
 
     def calc_command(self, rover):       
         x, y = rover.pos
         dt = (rover.time - self.time) / 1000.0 # in seconds
         
-        rotv = None
+        rotv = 0.0
+        rota = 0.0
+        
         if self.prev_direction and dt:            
             rotv = (rover.direction - self.prev_direction) / dt
             print "ROTV:", rotv
-        if self.prev_rotv and dt:            
-            rota = (rotv - self.prev_rotv) / dt
+        if self.current_turn_rate and dt:            
+            rota = (rotv - math.degrees(self.current_turn_rate)) / dt
             print "ROTA:", rota
-        self.prev_rotv = rotv
+        self.current_turn_rate = math.radians(rotv)
         self.prev_direction = rover.direction
+        self.est_ang_acc = max(self.est_ang_acc, abs(math.radians(rota)))
         print "SPEED:", rover.speed, "(", rover.maxspeed, ")"       
         print "DIR:", rover.direction
         #print "SPEED:", rover.speed, "(", rover.maxspeed, ")"
@@ -136,12 +231,7 @@ class PidPathFollower(BaseStrategy):
             
         self.errint += a * dt
         
-        # History
-        self.turn_history.append(self.ctl_turn)
-        self.turn_history.popleft()
-        
         new_acc_cmd = ''
-        new_turn_cmd = ''
         
         #print "difference", a
         
@@ -155,57 +245,35 @@ class PidPathFollower(BaseStrategy):
             new_acc_cmd = "a"
 
         # Turn control.
-        maxturn = math.radians(rover.maxturn)
-        maxhardturn = math.radians(rover.maxhardturn)
-        wanted_turn_rate = 0.0
-        
-        try:
-            wanted_turn_rate = self.p * a + self.i * self.errint + self.d * (a - self.lasterr) / dt
-        except ZeroDivisionError: 
-            pass
-        
-        if wanted_turn_rate > maxhardturn:
-            wanted_turn_rate = maxhardturn
-        if wanted_turn_rate < -maxhardturn:
-            wanted_turn_rate = -maxhardturn
-        
-        turn_cmd = ''
-        neutral_cmd = ''
-        pwm = 0.0
-        
-        if wanted_turn_rate > 0:
-            turn_cmd = 'l'
-            neutral_cmd = 'r'
-        else:
-            turn_cmd = 'r'
-            neutral_cmd = 'l'
-            
-        if abs(wanted_turn_rate) > maxturn:
-            # Hard turn
-            pwm = (abs(wanted_turn_rate) - maxturn) / (maxhardturn - maxturn)
-            history_pwm = sum(1.0 for cmd in self.turn_history if cmd == turn_cmd.upper()) / len(self.turn_history)
-            if (pwm < history_pwm) and (self.ctl_turn == turn_cmd.upper()):
-                new_turn_cmd = neutral_cmd
-            else:
-                new_turn_cmd = turn_cmd
-        else:
-            # Normal turn
-            pwm = abs(wanted_turn_rate) / maxturn
-            history_pwm = sum(1.0 for cmd in self.turn_history if cmd == turn_cmd.upper() or cmd == turn_cmd) / len(self.turn_history)
-            if self.ctl_turn == turn_cmd.upper():
-                new_turn_cmd += neutral_cmd
-            elif (pwm < history_pwm) and (self.ctl_turn == turn_cmd):
-                new_turn_cmd += neutral_cmd
-            elif self.ctl_turn != turn_cmd:
-                new_turn_cmd += turn_cmd
+        wanted_turn_rate = self.calc_wanted_ang_vel(a, dt)
+        new_turn_cmd = self.calc_turn_command(wanted_turn_rate, dt)
                 
-        print wanted_turn_rate / maxhardturn
+        print wanted_turn_rate / self.maxhardturn
         
         if deleted_node:
             print '***** New segment *****'
         
-        self.ctl_acc = new_acc_cmd        
-        self.ctl_turn = new_turn_cmd
-        self.lasterr = a
+        self.ctl_acc = new_acc_cmd
+        
+        if new_turn_cmd == 'l':
+            if self.current_turn == 'R':
+                self.current_turn = 'r'
+            elif self.current_turn == 'r':
+                self.current_turn = ''
+            elif self.current_turn == '':
+                self.current_turn = 'l'
+            else:
+                self.current_turn = 'L'
+        elif new_turn_cmd == 'r':
+            if self.current_turn == 'L':
+                self.current_turn = 'l'
+            elif self.current_turn == 'l':
+                self.current_turn = ''
+            elif self.current_turn == '':
+                self.current_turn = 'r'
+            else:
+                self.current_turn = 'R'
+        
+        self.last_ang_err = a
 
         return new_acc_cmd + new_turn_cmd
