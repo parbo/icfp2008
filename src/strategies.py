@@ -151,7 +151,13 @@ class SimplePathFollower(BaseStrategy):
         #print cmd
         return cmd
         
-        
+SPEED_CTRL_ACC = 'a'
+SPEED_CTRL_TURN = 't'
+SPEED_CTRL_BRAKE = 'b'
+
+MIN_TURN_RADIUS = 5.0
+ANGLE_DIFF_LIMIT = 0.4
+
 class PidPathFollower(BaseStrategy):
     def __init__(self, rover, p, i, d):
         self.rover = rover
@@ -168,6 +174,9 @@ class PidPathFollower(BaseStrategy):
         self.maxhardturn = math.radians(rover.maxhardturn)
         self.current_turn = ''
         self.current_turn_rate = 0.0  # Calculated rate of turn [radians / s]
+        self.current_speed_ctrl = 'a'
+        self.maxturnradius = rover.maxspeed / rover.maxhardturn
+        self.speed_limit = 0.0
         return
         
     def calc_path(self, rover):
@@ -261,6 +270,31 @@ class PidPathFollower(BaseStrategy):
                 turn_cmd = 'r'
              
         return turn_cmd
+        
+    def calc_speed_command(self, heading_vect, target_vect):
+        pi2 = math.pi / 2
+        angle = heading_vect.angle(target_vect)
+        if self.current_speed_ctrl == SPEED_CTRL_TURN:
+            turn_radius = MIN_TURN_RADIUS
+            if angle > pi2:
+                turn_radius = MIN_TURN_RADIUS + (angle - pi2) * (max(self.maxturnradius, MIN_TURN_RADIUS) - MIN_TURN_RADIUS) / pi2
+            self.speed_limit = turn_radius * self.maxhardturn
+            print 'Starting turn.' 
+            print 'Turn radius =', turn_radius
+            print 'Speed limit =', self.speed_limit
+            self.current_speed_ctrl = SPEED_CTRL_BRAKE
+            
+        if  self.current_speed_ctrl == SPEED_CTRL_BRAKE:
+            if angle < ANGLE_DIFF_LIMIT:
+                print 'Leaving brake mode.'
+                self.current_speed_ctrl = SPEED_CTRL_ACC
+            if self.rover.speed > self.speed_limit:
+                print 'Braking. Speed =', self.rover.speed
+                return 'b'
+            else:
+                return 'a'
+        else:
+            return 'a'
 
     def calc_command(self, rover):       
         x, y = rover.pos
@@ -291,42 +325,29 @@ class PidPathFollower(BaseStrategy):
         x1, y1 = seg[0]
         x2, y2 = seg[1]
         goalvec = Vector(x2, y2)
+        tgtvec = goalvec - nowvec
         #print "segment:", seg
         #print "pos:", x, y
         
-        #old_a = dirvec.angle_signed(goalvec - nowvec)
         a = self.calc_angle(rover)
         #print "ANGLE:", a, old_a
         
         if deleted_node:
             self.errint = 0.0
+            print '***** New segment *****'
+            self.current_speed_ctrl = SPEED_CTRL_TURN
             
         self.errint += a * dt
         
-        new_acc_cmd = ''
-        
-        #print "difference", a
-        
         # Speed control.
-        absa = abs(a)
-        if absa > 0.7:
-            new_acc_cmd = "b"
-        elif absa > 0.4:
-            pass
-        else:            
-            new_acc_cmd = "a"
-
-#        new_acc_cmd = "a"
+        new_acc_cmd = self.calc_speed_command(dirvec, tgtvec)
 
         # Turn control.
         wanted_turn_rate = self.calc_wanted_ang_vel(a, dt)
         new_turn_cmd = self.calc_turn_command(wanted_turn_rate, dt)
                 
         print wanted_turn_rate / self.maxhardturn
-        
-        if deleted_node:
-            print '***** New segment *****'
-        
+                
         self.ctl_acc = new_acc_cmd
         
         if new_turn_cmd == 'l':

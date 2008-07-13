@@ -6,6 +6,12 @@ from vector import Vector
 
 TIME_STEP = 0.1
 
+class DummyWorld(object):
+    def __init__(self):
+        self.currentobjects = []
+        return
+        
+
 class State(object):
     def __init__(self, pos, direction, maxspeed, acc, brake, turn, hardturn, rotacc):
         self.posvect = Vector(pos[0], pos[1])
@@ -70,8 +76,9 @@ def update_rover(rover, state, time):
     
 def simulate(rover, state, maxtime):
     t = 0.0
-    controller = strategies.PidPathFollower(5.0, 0.0, 1.0)
-    update_rover(rover, state, t)
+    controller = strategies.PidPathFollower(rover, 10.0, 0.0, 1.0)
+    rover.strategy = controller
+    update_rover(rover, state, 1000 * t)
     while t <= maxtime:
         cmd = controller.calc_command(rover)
         #print cmd
@@ -84,7 +91,7 @@ def simulate(rover, state, maxtime):
             if cmd[-1] in 'lLrR':
                 ctl_turn = cmd[-1]
         state.update(ctl_acc, ctl_turn)
-        update_rover(rover, state, t)
+        update_rover(rover, state, 1000 * t)
         t += TIME_STEP
     return
     
@@ -132,7 +139,7 @@ if __name__ == '__main__':
     maxturn_rad = math.radians(maxturn)
     maxhardturn_rad = math.radians(maxhardturn)
     rotacc_rad = math.radians(rotacc)
-    rover = world.Rover(None, minsensor, maxsensor, maxspeed, maxturn, maxhardturn)
+    rover = world.Rover(DummyWorld(), minsensor, maxsensor, maxspeed, maxturn, maxhardturn)
     state = State(pos, direction, maxspeed, acc, brake, maxturn_rad, maxhardturn_rad, rotacc_rad)
     path = [(0.0, 0.0), (200.0, 50.0), (200.0, 100.0), (150.0, 150.0), (-150.0, 150.0), (-200.0, 100.0), (-200.0, -200.0)]
     rover.path = strategies.Path(path)
