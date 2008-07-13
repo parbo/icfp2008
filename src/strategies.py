@@ -82,11 +82,13 @@ class SimplePathFollower(BaseStrategy):
         return cmd
         
         
-class PiPathFollower(BaseStrategy):
-    def __init__(self, p, i):
+class PidPathFollower(BaseStrategy):
+    def __init__(self, p, i, d):
         self.p = p
         self.i = i
+        self.d = d
         self.errint = 0.0
+        self.lasterr = 0.0
         self.time = 0.0
         self.turn_history = deque(10 * ['-'])
         self.ctl_acc = ''
@@ -137,7 +139,12 @@ class PiPathFollower(BaseStrategy):
         # Turn control.
         maxturn = math.radians(rover.maxturn)
         maxhardturn = math.radians(rover.maxhardturn)
-        wanted_turn_rate = self.p * a + self.i * self.errint
+        wanted_turn_rate = 0.0
+        
+        try:
+            wanted_turn_rate = self.p * a + self.i * self.errint + self.d * (a - self.lasterr) / dt
+        except ZeroDivisionError: 
+            pass
         
         if wanted_turn_rate > maxhardturn:
             wanted_turn_rate = maxhardturn
@@ -173,8 +180,14 @@ class PiPathFollower(BaseStrategy):
                 new_turn_cmd += neutral_cmd
             elif self.ctl_turn != turn_cmd:
                 new_turn_cmd += turn_cmd
+                
+        print wanted_turn_rate / maxhardturn
+        
+        if deleted_node:
+            print '***** New segment *****'
         
         self.ctl_acc = new_acc_cmd        
         self.ctl_turn = new_turn_cmd
+        self.lasterr = a
 
         return new_acc_cmd + new_turn_cmd

@@ -4,7 +4,7 @@ import strategies
 import world
 from vector import Vector
 
-TIME_STEP = 0.01
+TIME_STEP = 0.1
 
 class State(object):
     def __init__(self, pos, direction, maxspeed, acc, brake, turn, hardturn, rotacc):
@@ -70,7 +70,7 @@ def update_rover(rover, state, time):
     
 def simulate(rover, state, maxtime):
     t = 0.0
-    controller = strategies.PiPathFollower(10.0, 0.0)
+    controller = strategies.PidPathFollower(5.0, 0.0, 1.0)
     update_rover(rover, state, t)
     while t <= maxtime:
         cmd = controller.calc_command(rover)
