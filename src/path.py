@@ -5,7 +5,12 @@ import world as WorldModule
 BOULDER_RADIUS_MODIFIER = 1.0
 CRATER_RADIUS_MODIFIER = 1.0
 
-def find_path(start, goal, world):
+class PathRecursionDepth(Exception):
+    pass
+
+def find_path(start, goal, world, depth=0):
+    if depth > 10:
+        raise PathRecursionDepth
     # Find obstacles along the path from start to goal.
     obstacles = find_obstacles(start, goal, world)
     if len(obstacles) > 0:
@@ -28,14 +33,20 @@ def find_path(start, goal, world):
         obstacle_num_2 = len(obstacles_start_n2) + len(obstacles_n2_goal)
         # Select the path with the fewest obstacles and discard the other one.
         # Calculate new path segments recursively.
-        if obstacle_num_1 < obstacle_num_2:
-            path = find_path(start, n1, world)[:-1]
-            path.extend(find_path(n1, goal, world))
-            return path
-        else:
-            path = find_path(start, n2, world)[:-1]
-            path.extend(find_path(n2, goal, world))
-            return path
+        try:
+            if obstacle_num_1 < obstacle_num_2:
+                path = find_path(start, n1, world, depth+1)[:-1]
+                path.extend(find_path(n1, goal, world, depth+1))
+                return path
+            else:
+                path = find_path(start, n2, world, depth+1)[:-1]
+                path.extend(find_path(n2, goal, world, depth+1))
+                return path
+        except PathRecursionDepth:
+            if depth == 0:
+                print "Max recursion depth reached"
+                return [start, goal]
+            raise
     else:
         return [start, goal]
     

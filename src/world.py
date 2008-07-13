@@ -86,7 +86,7 @@ class Rover(object):
         self.reset()
         self.radius = 0.5
         self.time = 0.0
-        self.strategy = strategies.PidPathFollower(self, 10.0, 0.0, 4.0)
+        self.strategy = strategies.PidPathFollower(self, 7.0, 0.0, 1.0)
 
     def ok(self):
         return self.old != None
@@ -99,12 +99,6 @@ class Rover(object):
         self.path_needed = True
 
     def get_svg(self):
-        for path in self.old_paths:
-            svg = ["<polyline fill=\"none\" stroke=\"#00ff00\" stroke-width=\"1\" points=\""]
-            for p in path:
-                x, y = p
-                svg.append("%f, %f " % (x, y))
-            svg.append("\" />")
         svg = ["<polyline fill=\"none\" stroke=\"blue\" stroke-width=\"1\" points=\""]
         for r in self.old:
             x, y = r[2]
@@ -137,12 +131,14 @@ class Rover(object):
         if self.path_needed:
             self.old_paths.append(self.path)
             self.path = self.strategy.calc_path(self)
-            print self.path.points
+            #print self.path.points
             self.path_needed = False
         if not self.calc_needed or self.path == None:
+            #print "no calc needed"
             return ""
         cmd = self.strategy.calc_command(self)
         self.calc_needed = False #True
+        print cmd
         return cmd
         
 class World(object):
@@ -160,6 +156,7 @@ class World(object):
         self.martians = []
         self.old_martians = []
         self.runs = 0
+        self.currentobjects = []
 
     def reset(self):
         f = open("map_%d.svg" % self.runs, "w")
@@ -201,19 +198,23 @@ class World(object):
                           tmsg.vehicle_dir,
                           tmsg.vehicle_speed)
         self.time = tmsg.time
+        self.currentobjects = []
         for b in tmsg.boulders:
             x, y, radius = b
+            self.currentobjects.append(Boulder((x, y), radius))
             if (x, y) not in self.boulders:                
                 self.boulders[(x, y)] = Boulder((x, y), radius)
                 self.rover.schedule_calc_path()
         for c in tmsg.craters:
             x, y, radius = c
+            self.currentobjects.append(Crater((x, y), radius))
             if (x, y) not in self.craters:
                 self.craters[(x, y)] = Crater((x, y), radius)
                 self.rover.schedule_calc_path()
         numm = len(self.martians)
         for e in tmsg.enemies:
             x, y, direction, speed = e
+            self.currentobjects.append(Martian((x, y), speed, direction, tmsg.time))
             m = self.find_martian((x, y), tmsg.time)
             if m:
                 m.update((x, y), speed, direction, tmsg.time)

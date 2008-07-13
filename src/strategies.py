@@ -3,6 +3,7 @@ from collections import deque
 from vector import Vector 
 import path
 import astarpath
+import world
 
 class Path(object):
     def __init__(self, points):
@@ -21,13 +22,81 @@ class Path(object):
                 deleted_node = True
         return (deleted_node, self.points[0:2])
 
+def boulder_cost(r, d):
+    if abs(d) < r:
+        return 1.0
+    m = r + 1
+    k = -1
+    return max(k * abs(d) + m, 0.0)
+def crater_cost(r, d):
+    if abs(d) < r:
+        return 1.0
+    m = r + 1
+    k = -1
+    return max(k * abs(d) + m, 0.0)
+def martian_cost(r, d):
+    if abs(d) < r:
+        return 1.0
+    m = r + 1
+    k = -1
+    return max(k * abs(d) + m, 0.0)
+
 class BaseStrategy(object):
     def calc_path(self, rover):
         return Path([rover.pos, (0.0, 0.0)])
 
     def calc_command(self, rover):
         return ""
+
+    def calc_angle(self, rover):
+        deleted_node, seg = rover.path.current_segment(rover.pos, 4.0)
+        wp = seg[1]
+        #print wp
+        rdir = math.radians(rover.direction)
+        dirvec = Vector(math.cos(rdir), math.sin(rdir))
+        wpvec = (Vector(wp) - Vector(rover.pos)).normalize()
+        if not rover.world.currentobjects:
+            return dirvec.angle_signed(wpvec)
         
+        def cost_fcn(v):
+            cost = 0
+            for obj in rover.world.currentobjects:
+                v2 = Vector(obj.pos) - Vector(rover.pos)
+                projd = v2 * v
+                if projd > 0.0:
+                    d = math.sqrt(v2 * v2 - projd ** 2)
+                    if isinstance(obj, world.Boulder):
+                        cost += boulder_cost(obj.radius, d) / (projd + 1.0)
+                    if isinstance(obj, world.Crater):
+                        cost += crater_cost(obj.radius, d) / (projd + 1.0)
+                    if isinstance(obj, world.Martian):
+                        cost += martian_cost(obj.radius, d) / (projd + 1.0)
+            return cost
+
+        wpcost = cost_fcn(wpvec)
+        # if wpvec is good enough
+        if wpcost < 0.1:
+            print "WP is good enough"
+            return dirvec.angle_signed(wpvec)
+
+        num = 10
+        testvec = []
+        for i in range(1, num):
+            a = i * 10.0 / (num - 1)
+            testvec.append((a, wpvec.rotate(math.radians(a))))
+            testvec.append((a, wpvec.rotate(math.radians(-a))))
+
+        costs = [(wpcost, 0, wpvec)]
+        for a, v in testvec:
+            cost = cost_fcn(v)
+            costs.append((cost, a, v))
+            
+        costs.sort()
+        c, a, v = costs[0]
+        if v != dirvec:
+            print "selecting:", v, c, wpcost
+            return dirvec.angle_signed(v)
+        return 0.0
 
 class SimplePathFollower(BaseStrategy):
     def calc_path(self, rover):
@@ -202,15 +271,15 @@ class PidPathFollower(BaseStrategy):
         
         if self.prev_direction and dt:            
             rotv = (rover.direction - self.prev_direction) / dt
-            print "ROTV:", rotv
+            #print "ROTV:", rotv
         if self.current_turn_rate and dt:            
             rota = (rotv - math.degrees(self.current_turn_rate)) / dt
-            print "ROTA:", rota
+            #print "ROTA:", rota
         self.current_turn_rate = math.radians(rotv)
         self.prev_direction = rover.direction
         self.est_ang_acc = max(self.est_ang_acc, abs(math.radians(rota)))
-        print "SPEED:", rover.speed, "(", rover.maxspeed, ")"       
-        print "DIR:", rover.direction
+        #print "SPEED:", rover.speed, "(", rover.maxspeed, ")"       
+        #print "DIR:", rover.direction
         #print "SPEED:", rover.speed, "(", rover.maxspeed, ")"
 
         self.time = rover.time
@@ -224,7 +293,10 @@ class PidPathFollower(BaseStrategy):
         goalvec = Vector(x2, y2)
         #print "segment:", seg
         #print "pos:", x, y
-        a = dirvec.angle_signed(goalvec - nowvec)
+        
+        #old_a = dirvec.angle_signed(goalvec - nowvec)
+        a = self.calc_angle(rover)
+        #print "ANGLE:", a, old_a
         
         if deleted_node:
             self.errint = 0.0
@@ -243,6 +315,8 @@ class PidPathFollower(BaseStrategy):
             pass
         else:            
             new_acc_cmd = "a"
+
+        new_acc_cmd = "a"
 
         # Turn control.
         wanted_turn_rate = self.calc_wanted_ang_vel(a, dt)
@@ -277,3 +351,13 @@ class PidPathFollower(BaseStrategy):
         self.last_ang_err = a
 
         return new_acc_cmd + new_turn_cmd
+
+
+if __name__=="__main__":
+    rg = range(-10, 10, 1)
+
+    print [boulder_cost(5, r) for r in rg]
+    print [crater_cost(5, r) for r in rg]
+    print [martian_cost(5, r) for r in rg]
+    print [wp_cost(r) for r in rg]
+    
