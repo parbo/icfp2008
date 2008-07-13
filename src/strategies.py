@@ -151,9 +151,10 @@ class SimplePathFollower(BaseStrategy):
         #print cmd
         return cmd
         
-SPEED_CTRL_ACC = 'a'
-SPEED_CTRL_TURN = 't'
-SPEED_CTRL_BRAKE = 'b'
+SPEED_CTRL_ACC = 0
+SPEED_CTRL_TURN = 1
+SPEED_CTRL_BRAKE_TURN = 2
+SPEED_CTRL_BRAKE_TGT = 3
 
 MIN_TURN_RADIUS = 5.0
 ANGLE_DIFF_LIMIT = 0.4
@@ -177,6 +178,7 @@ class PidPathFollower(BaseStrategy):
         self.current_speed_ctrl = 'a'
         self.maxturnradius = rover.maxspeed / rover.maxhardturn
         self.speed_limit = 0.0
+        self.target_distance = None
         return
         
     def calc_path(self, rover):
@@ -272,29 +274,41 @@ class PidPathFollower(BaseStrategy):
         return turn_cmd
         
     def calc_speed_command(self, heading_vect, target_vect):
+        speed_cmd = 'a'
         pi2 = math.pi / 2
         angle = heading_vect.angle(target_vect)
+        target_distance = abs(target_vect)
         if self.current_speed_ctrl == SPEED_CTRL_TURN:
             turn_radius = MIN_TURN_RADIUS
             if angle > pi2:
                 turn_radius = MIN_TURN_RADIUS + (angle - pi2) * (max(self.maxturnradius, MIN_TURN_RADIUS) - MIN_TURN_RADIUS) / pi2
             self.speed_limit = turn_radius * self.maxhardturn
-            print 'Starting turn.' 
-            print 'Turn radius =', turn_radius
-            print 'Speed limit =', self.speed_limit
-            self.current_speed_ctrl = SPEED_CTRL_BRAKE
+            #print 'Starting turn.' 
+            #print 'Turn radius =', turn_radius
+            #print 'Speed limit =', self.speed_limit
+            self.current_speed_ctrl = SPEED_CTRL_BRAKE_TURN
             
-        if  self.current_speed_ctrl == SPEED_CTRL_BRAKE:
+        if self.current_speed_ctrl == SPEED_CTRL_BRAKE_TURN:
             if angle < ANGLE_DIFF_LIMIT:
-                print 'Leaving brake mode.'
+                #print 'Leaving brake mode.'
                 self.current_speed_ctrl = SPEED_CTRL_ACC
             if self.rover.speed > self.speed_limit:
-                print 'Braking. Speed =', self.rover.speed
-                return 'b'
+                #print 'Braking. Speed =', self.rover.speed
+                speed_cmd = 'b'
+        elif self.current_speed_ctrl == SPEED_CTRL_BRAKE_TGT:
+            if angle < ANGLE_DIFF_LIMIT:
+                self.current_speed_ctrl = SPEED_CTRL_ACC
             else:
-                return 'a'
+                speed_cmd = 'b'
         else:
-            return 'a'
+            if self.target_distance is not None:
+                if target_distance > self.target_distance:
+                    # Distance to target increasing.
+                    self.current_speed_ctrl = SPEED_CTRL_BRAKE_TGT
+                    speed_cmd = 'b'
+                    
+        self.target_distance = target_distance
+        return speed_cmd
 
     def calc_command(self, rover):       
         x, y = rover.pos
@@ -326,6 +340,7 @@ class PidPathFollower(BaseStrategy):
         x2, y2 = seg[1]
         goalvec = Vector(x2, y2)
         tgtvec = goalvec - nowvec
+        
         #print "segment:", seg
         #print "pos:", x, y
         
@@ -336,6 +351,7 @@ class PidPathFollower(BaseStrategy):
             self.errint = 0.0
             print '***** New segment *****'
             self.current_speed_ctrl = SPEED_CTRL_TURN
+            self.target_distance = None
             
         self.errint += a * dt
         
