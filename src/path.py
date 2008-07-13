@@ -51,7 +51,7 @@ def find_new_nodes(start, center, radius):
     # Distance from start to center:
     dsc = abs(vsc)
     # Distance from start to tangent:
-    dst = math.sqrt(dsc ** 2 - radius ** 2)
+    dst = math.sqrt(max(dsc ** 2 - radius ** 2, 0))
     # Angle between vector(start->center) and vector(start->tangent):
     a = 1.01 * math.acos(dst / dsc)
     # Normalized vector pointing from start to center:

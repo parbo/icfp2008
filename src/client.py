@@ -14,6 +14,7 @@ class RoverControl(object):
         if self.world and self.world.rover and self.world.rover.ok():
             c = self.world.rover.calc_command()
             if c:
+                #print c
                 self.roverclient.sendq.put(c)
 
     def _run_control(self):
@@ -36,7 +37,9 @@ class RoverControl(object):
         while rc.running:
             try:
                 while True:
-                    m = mp.parse(rc.recvq.get(False))
+                    msg = rc.recvq.get(False)
+                    #print msg
+                    m = mp.parse(msg)
                     self.update_world(m)
             except Queue.Empty:
                 pass

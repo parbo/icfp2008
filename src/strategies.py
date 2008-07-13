@@ -2,6 +2,7 @@ import math
 from collections import deque
 from vector import Vector 
 import path
+import astarpath
 
 class Path(object):
     def __init__(self, points):
@@ -99,6 +100,7 @@ class PidPathFollower(BaseStrategy):
         return Path(path.find_path(rover.pos, (0.0, 0.0), rover.world))
 
     def calc_command(self, rover):
+        #print "SPEED:", rover.speed, "(", rover.maxspeed, ")"
         x, y = rover.pos
         dt = rover.time - self.time
         self.time = rover.time

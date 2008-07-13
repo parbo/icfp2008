@@ -94,10 +94,17 @@ class Rover(object):
     def reset(self):
         self.path = None
         self.old = None
+        self.old_paths = []
         self.calc_needed = True
         self.path_needed = True
 
     def get_svg(self):
+        for path in self.old_paths:
+            svg = ["<polyline fill=\"none\" stroke=\"#00ff00\" stroke-width=\"1\" points=\""]
+            for p in path:
+                x, y = p
+                svg.append("%f, %f " % (x, y))
+            svg.append("\" />")
         svg = ["<polyline fill=\"none\" stroke=\"blue\" stroke-width=\"1\" points=\""]
         for r in self.old:
             x, y = r[2]
@@ -128,13 +135,14 @@ class Rover(object):
         
     def calc_command(self):
         if self.path_needed:
+            self.old_paths.append(self.path)
             self.path = self.strategy.calc_path(self)
             print self.path.points
             self.path_needed = False
         if not self.calc_needed or self.path == None:
             return ""
         cmd = self.strategy.calc_command(self)
-        self.calc_needed = False
+        self.calc_needed = False #True
         return cmd
         
 class World(object):

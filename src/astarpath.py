@@ -2,13 +2,14 @@ import math
 import heapq
 from vector import Vector, intersection
 import  world as WorldModule
+import nearest
 
 def create_nodes_obstacles(world):
     nodes = []
     obstacles = []
     for boulder in world.boulders.itervalues():
         x, y = boulder.pos
-        r = boulder.radius + 3
+        r = boulder.radius + 5
         nodes.append((x + r, y + r))
         nodes.append((x + r, y - r))
         nodes.append((x - r, y + r))
@@ -16,12 +17,12 @@ def create_nodes_obstacles(world):
         obstacles.append((boulder.pos, boulder.radius))
     for crater in world.craters.itervalues():
         x, y = crater.pos
-        r = crater.radius + 3
+        r = crater.radius + 5
         nodes.append((x + r, y + r))
         nodes.append((x + r, y - r))
         nodes.append((x - r, y + r))
         nodes.append((x - r, y - r))
-        obstacles.append((boulder.pos, boulder.radius))
+        obstacles.append((crater.pos, crater.radius))
     return nodes, obstacles
 
 def find_neighbour_nodes(node, closedlist, nodes, obstacles):
@@ -70,7 +71,7 @@ def find_neighbour_nodes(node, closedlist, nodes, obstacles):
 
 def find_path(start, goal, world):
     # Solve problem using A* algorithm.
-    allnodes, obstacles = create_nodes_obstacles(world)    
+    allnodes, obstacles = nearest.create_nodes_obstacles(world)    
     allnodes.append(goal)
 
     came_from = {}
@@ -94,9 +95,9 @@ def find_path(start, goal, world):
                 node = came_from[node]
                 path.append(node)
             path.reverse()
+            print path
             return path
         closedlist.add(node)
-        print node, len(closedlist), len(allnodes)
         nb = find_neighbour_nodes(node, closedlist, allnodes, obstacles)
         print len(nb)
         for n in nb:
