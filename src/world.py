@@ -82,7 +82,7 @@ class Rover(object):
         self.maxhardturn = maxhardturn
         self.acceleration = 1.0
         self.retardation = -1.0
-        self.strategy = strategies.PidPathFollower(5.0, 0.0, 1.0)
+        self.strategy = strategies.PidPathFollower(10.0, 0.0, 4.0)
         self.path = None
         self.reset()
         self.radius = 0.5

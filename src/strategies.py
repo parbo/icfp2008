@@ -94,16 +94,32 @@ class PidPathFollower(BaseStrategy):
         self.turn_history = deque(10 * ['-'])
         self.ctl_acc = ''
         self.ctl_turn = ''
+        self.prev_direction = None
+        self.prev_rotv = None
         return
         
     def calc_path(self, rover):
         return Path(path.find_path(rover.pos, (0.0, 0.0), rover.world))
 
-    def calc_command(self, rover):
-        #print "SPEED:", rover.speed, "(", rover.maxspeed, ")"
+    def calc_command(self, rover):       
         x, y = rover.pos
-        dt = rover.time - self.time
+        dt = (rover.time - self.time) / 1000.0 # in seconds
+        
+        rotv = None
+        if self.prev_direction and dt:            
+            rotv = (rover.direction - self.prev_direction) / dt
+            print "ROTV:", rotv
+        if self.prev_rotv and dt:            
+            rota = (rotv - self.prev_rotv) / dt
+            print "ROTA:", rota
+        self.prev_rotv = rotv
+        self.prev_direction = rover.direction
+        print "SPEED:", rover.speed, "(", rover.maxspeed, ")"       
+        print "DIR:", rover.direction
+        #print "SPEED:", rover.speed, "(", rover.maxspeed, ")"
+
         self.time = rover.time
+        
         nowvec = Vector(x, y)
         dr = math.radians(rover.direction)
         dirvec = Vector(math.cos(dr), math.sin(dr))
