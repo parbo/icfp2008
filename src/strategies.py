@@ -316,7 +316,7 @@ class PidPathFollower(BaseStrategy):
         else:            
             new_acc_cmd = "a"
 
-        new_acc_cmd = "a"
+#        new_acc_cmd = "a"
 
         # Turn control.
         wanted_turn_rate = self.calc_wanted_ang_vel(a, dt)
