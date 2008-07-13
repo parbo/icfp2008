@@ -89,6 +89,8 @@ class PiPathFollower(BaseStrategy):
         self.errint = 0.0
         self.time = 0.0
         self.turn_history = deque(10 * ['-'])
+        self.ctl_acc = ''
+        self.ctl_turn = ''
         return
         
     def calc_path(self, rover):
@@ -113,21 +115,26 @@ class PiPathFollower(BaseStrategy):
             self.errint = 0.0
             
         self.errint += a * dt
+        
+        # History
+        self.turn_history.append(self.ctl_turn)
+        self.turn_history.popleft()
+        
+        new_acc_cmd = ''
+        new_turn_cmd = ''
+        
         #print "difference", a
         
         # Speed control.
-        cmd = ""
         absa = abs(a)
         if absa > 0.7:
-            cmd = "b"
+            new_acc_cmd = "b"
         elif absa > 0.4:
             pass
         else:            
-            cmd = "a"
+            new_acc_cmd = "a"
 
         # Turn control.
-        self.turn_history.append(rover.ctl_turn)
-        self.turn_history.popleft()
         maxturn = math.radians(rover.maxturn)
         maxhardturn = math.radians(rover.maxhardturn)
         wanted_turn_rate = self.p * a + self.i * self.errint
@@ -152,21 +159,22 @@ class PiPathFollower(BaseStrategy):
             # Hard turn
             pwm = (abs(wanted_turn_rate) - maxturn) / (maxhardturn - maxturn)
             history_pwm = sum(1.0 for cmd in self.turn_history if cmd == turn_cmd.upper()) / len(self.turn_history)
-            if (pwm < history_pwm) and (rover.ctl_turn == turn_cmd.upper()):
-                cmd += neutral_cmd
+            if (pwm < history_pwm) and (self.ctl_turn == turn_cmd.upper()):
+                new_turn_cmd = neutral_cmd
             else:
-                cmd += turn_cmd
+                new_turn_cmd = turn_cmd
         else:
             # Normal turn
             pwm = abs(wanted_turn_rate) / maxturn
             history_pwm = sum(1.0 for cmd in self.turn_history if cmd == turn_cmd.upper() or cmd == turn_cmd) / len(self.turn_history)
-            if rover.ctl_turn == turn_cmd.upper():
-                cmd += neutral_cmd
-            elif (pwm < history_pwm) and (rover.ctl_turn == turn_cmd):
-                cmd += neutral_cmd
-            elif rover.ctl_turn != turn_cmd:
-                cmd += turn_cmd
+            if self.ctl_turn == turn_cmd.upper():
+                new_turn_cmd += neutral_cmd
+            elif (pwm < history_pwm) and (self.ctl_turn == turn_cmd):
+                new_turn_cmd += neutral_cmd
+            elif self.ctl_turn != turn_cmd:
+                new_turn_cmd += turn_cmd
+        
+        self.ctl_acc = new_acc_cmd        
+        self.ctl_turn = new_turn_cmd
 
-        #print rover.ctl_turn
-        #print cmd
-        return cmd
+        return new_acc_cmd + new_turn_cmd
