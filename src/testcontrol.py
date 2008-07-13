@@ -61,17 +61,17 @@ class State(object):
         self.ctl_turn = ctl_turn
         return
         
-def update_rover(rover, state):
+def update_rover(rover, state, time):
     pos = state.posvect.point()
     direction = math.degrees(-state.dirvect.angle_signed(Vector(1.0, 0.0)))
     #print direction
-    rover.update(state.ctl_acc, state.ctl_turn, pos, direction, state.speed)
+    rover.update(time, state.ctl_acc, state.ctl_turn, pos, direction, state.speed)
     return
     
 def simulate(rover, state, maxtime):
     t = 0.0
-    controller = strategies.SimplePathFollower()
-    update_rover(rover, state)
+    controller = strategies.PiPathFollower(10.0, 0.0)
+    update_rover(rover, state, t)
     while t <= maxtime:
         cmd = controller.calc_command(rover)
         #print cmd
@@ -84,7 +84,7 @@ def simulate(rover, state, maxtime):
             if cmd[-1] in 'lLrR':
                 ctl_turn = cmd[-1]
         state.update(ctl_acc, ctl_turn)
-        update_rover(rover, state)
+        update_rover(rover, state, t)
         t += TIME_STEP
     return
     

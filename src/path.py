@@ -2,8 +2,8 @@ import math
 from vector import Vector, intersection
 import world as WorldModule
 
-BOULDER_RADIUS_MODIFIER = 0.5
-CRATER_RADIUS_MODIFIER = 0.2
+BOULDER_RADIUS_MODIFIER = 1.0
+CRATER_RADIUS_MODIFIER = 1.0
 
 def find_path(start, goal, world):
     # Find obstacles along the path from start to goal.

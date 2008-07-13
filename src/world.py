@@ -82,10 +82,11 @@ class Rover(object):
         self.maxhardturn = maxhardturn
         self.acceleration = 1.0
         self.retardation = -1.0
-        self.strategy = strategies.SimplePathFollower()
+        self.strategy = strategies.PiPathFollower(10.0, 0.0)
         self.path = None
         self.reset()
         self.radius = 0.5
+        self.time = 0.0
 
     def ok(self):
         return self.old != None
@@ -106,11 +107,12 @@ class Rover(object):
         svg.append("<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#ffff00"))
         return svg
 
-    def update(self, ctl_acc, ctl_turn, pos, direction, speed):
+    def update(self, time, ctl_acc, ctl_turn, pos, direction, speed):
         if self.old != None:
             self.old.append((self.ctl_acc, self.ctl_turn, self.pos, self.direction, self.speed))
         else:
             self.old = []
+        self.time = time
         self.ctl_acc = ctl_acc
         self.ctl_turn = ctl_turn
         self.pos = pos
@@ -184,7 +186,8 @@ class World(object):
                 self.old_martians.append(m)
 
     def update(self, tmsg):
-        self.rover.update(tmsg.vehicle_ctl_acc,
+        self.rover.update(tmsg.time,
+                          tmsg.vehicle_ctl_acc,
                           tmsg.vehicle_ctl_turn,
                           (tmsg.vehicle_x, tmsg.vehicle_y),
                           tmsg.vehicle_dir,
