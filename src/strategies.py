@@ -13,6 +13,7 @@ class Path(object):
 
     def current_segment(self, pos, threshold):
         deleted_node = False
+        next_seg = None
         if len(self.points) > 2:
             x, y = pos
             p = self.points[1]
@@ -22,7 +23,9 @@ class Path(object):
             if d < threshold:
                 self.points = self.points[1:]
                 deleted_node = True
-        return (deleted_node, self.points[0:2])
+        if len(self.points) > 2:
+            next_seg = self.points[1:3]
+        return (deleted_node, self.points[0:2], next_seg)
 
 def boulder_cost(r, d):
     if abs(d) < r:
@@ -54,7 +57,7 @@ class BaseStrategy(object):
         return ""
 
     def calc_angle(self, rover):
-        deleted_node, seg = rover.path.current_segment(rover.pos, CLEAR_WAYPOINT_DIST ** 2)
+        deleted_node, seg, next_seg = rover.path.current_segment(rover.pos, CLEAR_WAYPOINT_DIST ** 2)
         wp = seg[1]
         #print wp
         rdir = math.radians(rover.direction)
@@ -112,7 +115,7 @@ class SimplePathFollower(BaseStrategy):
         nowvec = Vector(x, y)
         dr = math.radians(rover.direction)
         dirvec = Vector(math.cos(dr), math.sin(dr))
-        deleted_node, seg = rover.path.current_segment(rover.pos, 4.0)
+        deleted_node, seg, next_seg = rover.path.current_segment(rover.pos, 4.0)
         x1, y1 = seg[0]
         x2, y2 = seg[1]
         goalvec = Vector(x2, y2)
@@ -186,6 +189,7 @@ class PidPathFollower(BaseStrategy):
         self.speed_limit = 0.0
         self.target_distance = None
         self.safe_turn_speed = 0.8 * CLEAR_WAYPOINT_DIST * self.maxhardturn
+        self.next_turn_max_radius = self.maxturnradius
         return
         
     def reset(self):
@@ -200,6 +204,7 @@ class PidPathFollower(BaseStrategy):
         self.current_speed_ctrl = SPEED_CTRL_ACC
         self.speed_limit = 0.0
         self.target_distance = None
+        self.next_turn_max_radius = self.maxturnradius
         return
         
     def calc_path(self, rover):
@@ -330,7 +335,7 @@ class PidPathFollower(BaseStrategy):
             else:
                 speed_cmd = 'b'
         else:
-            if (self.rover.retardation is None) and (self.rover.speed > 0.3 * self.rover.maxspeed):
+            if (self.rover.retardation is None) and (self.rover.acceleration is not None):
                 # Calibration of retardation.
                 self.current_speed_ctrl = SPEED_CTRL_BRAKE_CALIB
                 speed_cmd = 'b'
@@ -339,9 +344,24 @@ class PidPathFollower(BaseStrategy):
                     # Distance to target increasing.
                     self.current_speed_ctrl = SPEED_CTRL_BRAKE_TGT
                     speed_cmd = 'b'
-                    
+            if self.rover.retardation is not None:
+                turn_speed_limit = self.next_turn_max_radius * self.maxhardturn
+                brake_distance = -0.5 * self.rover.retardation * (self.rover.speed ** 2 - turn_speed_limit ** 2)
+                print target_distance, brake_distance
+                if target_distance < brake_distance:
+                    print 'Approaching target - braking.'
+                    speed_cmd = 'b'
+                
         self.target_distance = target_distance
         return speed_cmd
+        
+    def calc_next_turn_max_radius(self, current_seg, next_seg):
+        angle = math.pi
+        pi2 = math.pi / 2
+        if next_seg is not None:
+            angle = (Vector(current_seg[1]) - Vector(current_seg[0])).angle(Vector(next_seg[1]) - Vector(next_seg[0]))
+        self.next_turn_max_radius = MIN_TURN_RADIUS + (angle - pi2) * (max(self.maxturnradius, MIN_TURN_RADIUS) - MIN_TURN_RADIUS) / pi2
+        return
 
     def calc_command(self, rover):       
         x, y = rover.pos
@@ -368,7 +388,7 @@ class PidPathFollower(BaseStrategy):
         nowvec = Vector(x, y)
         dr = math.radians(rover.direction)
         dirvec = Vector(math.cos(dr), math.sin(dr))
-        deleted_node, seg = rover.path.current_segment(rover.pos, CLEAR_WAYPOINT_DIST ** 2)
+        deleted_node, seg, next_seg = rover.path.current_segment(rover.pos, CLEAR_WAYPOINT_DIST ** 2)
         x1, y1 = seg[0]
         x2, y2 = seg[1]
         goalvec = Vector(x2, y2)
@@ -385,6 +405,8 @@ class PidPathFollower(BaseStrategy):
             print '***** New segment *****'
             self.current_speed_ctrl = SPEED_CTRL_TURN
             self.target_distance = None
+            
+        self.calc_next_turn_max_radius(seg, next_seg)
             
         self.errint += a * dt
         
