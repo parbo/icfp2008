@@ -243,7 +243,9 @@ class PidPathFollower(BaseStrategy):
         
         diff = wanted_turn_rate - estimated_turn_rate
         
-        if wanted_turn_rate == self.maxturn:
+        print diff, wanted_turn_rate, estimated_turn_rate
+        
+        if wanted_turn_rate == self.maxhardturn:
             # Max turn left.
             turn_cmd = 'l'
         elif wanted_turn_rate > self.maxturn:
@@ -264,7 +266,7 @@ class PidPathFollower(BaseStrategy):
                     turn_cmd = 'r'
                 elif self.current_turn in 'rR':
                     turn_cmd = 'l'
-        elif wanted_turn_rate == -self.maxturn:
+        elif wanted_turn_rate == -self.maxhardturn:
             # Max turn right.
             turn_cmd = 'r'
         elif wanted_turn_rate < -self.maxturn:
@@ -291,7 +293,8 @@ class PidPathFollower(BaseStrategy):
                 turn_cmd = 'l'
             elif self.current_turn in 'lL':
                 turn_cmd = 'r'
-             
+        
+        #print turn_cmd
         return turn_cmd
         
     def calc_speed_command(self, heading_vect, target_vect):
