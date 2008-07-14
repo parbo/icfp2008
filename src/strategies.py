@@ -215,7 +215,7 @@ class PidPathFollower(BaseStrategy):
         self.current_turn = ''
         self.current_turn_rate = 0.0  # Calculated rate of turn [radians / s]
         self.current_speed_ctrl = SPEED_CTRL_ACC
-        self.maxturnradius = rover.maxspeed / rover.maxhardturn
+        self.maxturnradius = rover.maxspeed / self.maxhardturn
         self.speed_limit = 0.0
         self.target_distance = None
         self.safe_turn_speed = 0.8 * CLEAR_WAYPOINT_DIST * self.maxhardturn
@@ -383,7 +383,7 @@ class PidPathFollower(BaseStrategy):
                     brake_distance = 0.0
                 #print target_distance, brake_distance
                 if target_distance < brake_distance:
-                    #print 'Approaching target - braking.'
+                    print 'Approaching target - braking.'
                     speed_cmd = 'b'
                 
         self.target_distance = target_distance
@@ -392,9 +392,16 @@ class PidPathFollower(BaseStrategy):
     def calc_next_turn_max_radius(self, current_seg, next_seg):
         angle = math.pi
         pi2 = math.pi / 2
+        pi34 = 0.75 * math.pi
         if next_seg is not None:
-            angle = (Vector(current_seg[1]) - Vector(current_seg[0])).angle(Vector(next_seg[1]) - Vector(next_seg[0]))
-        self.next_turn_max_radius = MIN_TURN_RADIUS + (angle - pi2) * (max(self.maxturnradius, MIN_TURN_RADIUS) - MIN_TURN_RADIUS) / pi2
+            angle = math.pi - (Vector(next_seg[1]) - Vector(next_seg[0])).angle(Vector(current_seg[1]) - Vector(current_seg[0]))
+        if angle < pi2:
+            self.next_turn_max_radius = MIN_TURN_RADIUS
+        elif angle > pi34:
+            self.next_turn_max_radius = self.maxturnradius
+        else:
+            self.next_turn_max_radius = MIN_TURN_RADIUS + (angle - pi2) * (max(self.maxturnradius, MIN_TURN_RADIUS) - MIN_TURN_RADIUS) / (pi34 - pi2)
+        #print math.degrees(angle), self.next_turn_max_radius
         return
 
     def calc_command(self, rover):       
