@@ -66,16 +66,16 @@ class BaseStrategy(object):
                 if projd > 0.0:
                     d = math.sqrt(v2 * v2 - projd ** 2)
                     if isinstance(obj, world.Boulder):
-                        cost += boulder_cost(obj.radius, d) / (projd + 1.0)
+                        cost += boulder_cost(obj.radius, d) #/ (projd + 1.0)
                     if isinstance(obj, world.Crater):
-                        cost += crater_cost(obj.radius, d) / (projd + 1.0)
+                        cost += crater_cost(obj.radius, d) #/ (projd + 1.0)
                     if isinstance(obj, world.Martian):
-                        cost += martian_cost(obj.radius, d) / (projd + 1.0)
+                        cost += martian_cost(obj.radius, d) #/ (projd + 1.0)
             return cost
 
         wpcost = cost_fcn(wpvec)
         # if wpvec is good enough
-        if wpcost < 0.1:
+        if wpcost < 0.9:
             print "WP is good enough"
             return dirvec.angle_signed(wpvec)
 

@@ -77,7 +77,13 @@ def intersection(start_vector, goal_vector, center, radius):
     if m2 >= r2:
         return False
     q = math.sqrt(r2 - m2)
-    return (s - q) < abs(vsg)
+    lvsg = abs(vsg)
+    intersection = []
+    if s - q < lvsg:
+        intersections.append(s - q)
+    if s + q < lvsg:
+        intersections.append(s + q)
+    return intersections
 
 if __name__ == '__main__':
     v1 = Vector(1, 2)
