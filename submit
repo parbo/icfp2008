@@ -1,0 +1,11 @@
+#!/bin/sh
+
+mkdir icfp08
+mkdir icfp08/bin
+mkdir icfp08/src
+cp bin/* icfp08/
+cp src/*.py icfp08/
+cp src/README icfp08/
+cp team icfp08/
+cp contact icfp08/
+tar czf icfp08.tgz icfp08
