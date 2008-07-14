@@ -83,10 +83,10 @@ class Rover(object):
         self.acceleration = None
         self.retardation = None
         self.path = None
-        self.reset()
         self.radius = 0.5
         self.time = 0.0
         self.strategy = strategies.PidPathFollower(self, 7.0, 0.0, 1.0)
+        self.reset()
 
     def ok(self):
         return self.old != None
@@ -97,6 +97,7 @@ class Rover(object):
         self.old_paths = []
         self.calc_needed = True
         self.path_needed = True
+        self.time = 0.0
         self.strategy.reset()
 
     def get_svg(self):
