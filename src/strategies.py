@@ -155,6 +155,7 @@ SPEED_CTRL_ACC = 0
 SPEED_CTRL_TURN = 1
 SPEED_CTRL_BRAKE_TURN = 2
 SPEED_CTRL_BRAKE_TGT = 3
+SPEED_CTRL_BRAKE_CALIB = 4
 
 MIN_TURN_RADIUS = 5.0
 ANGLE_DIFF_LIMIT = 0.4
@@ -300,8 +301,17 @@ class PidPathFollower(BaseStrategy):
                 self.current_speed_ctrl = SPEED_CTRL_ACC
             else:
                 speed_cmd = 'b'
+        elif self.current_speed_ctrl == SPEED_CTRL_BRAKE_CALIB:
+            if (self.rover.retardation is not None):
+                self.current_speed_ctrl = SPEED_CTRL_ACC
+            else:
+                speed_cmd = 'b'
         else:
-            if self.target_distance is not None:
+            if (self.rover.retardation is None) and (self.rover.speed > 0.3 * self.rover.maxspeed):
+                # Calibration of retardation.
+                self.current_speed_ctrl = SPEED_CTRL_BRAKE_CALIB
+                speed_cmd = 'b'
+            elif self.target_distance is not None:
                 if target_distance > self.target_distance:
                     # Distance to target increasing.
                     self.current_speed_ctrl = SPEED_CTRL_BRAKE_TGT

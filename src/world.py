@@ -80,8 +80,8 @@ class Rover(object):
         self.maxspeed = maxspeed
         self.maxturn = maxturn
         self.maxhardturn = maxhardturn
-        self.acceleration = 1.0
-        self.retardation = -1.0
+        self.acceleration = None
+        self.retardation = None
         self.path = None
         self.reset()
         self.radius = 0.5
@@ -113,6 +113,13 @@ class Rover(object):
             self.old.append((self.ctl_acc, self.ctl_turn, self.pos, self.direction, self.speed))
         else:
             self.old = []
+        if (self.acceleration is None) and ctl_acc == 'a':
+            if self.speed > 0.1 * self.maxspeed:
+                self.acceleration = 1000.0 * (speed - self.speed) / (time - self.time)
+                print 'Calculated acceleration =', self.acceleration
+        if (self.retardation is None) and (ctl_acc == 'b') and (speed - self.speed) < 0:
+            self.retardation = 1000.0 * (speed - self.speed) / (time - self.time)
+            print 'Calculated retardation =', self.retardation
         self.time = time
         self.ctl_acc = ctl_acc
         self.ctl_turn = ctl_turn
