@@ -1,4 +1,4 @@
-
+from vector import Vector, intersection
 
 class Entrance(object):
     def __init__(self):        
@@ -13,6 +13,7 @@ class Cluster(object):
     LEFT = 2
     BOTTOM = 3
     RIGHT = 4
+
     def __init__(self, pos, coords):
         self.entrances = []
         self.objects = []
@@ -41,6 +42,37 @@ class Cluster(object):
             elif x2 - x1 == 1:
                 return Cluster.LEFT
         return False
+
+    def adjacent_segment(self, segment):
+        if segment == Cluster.BOTTOM:
+            return Cluster.TOP
+        elif segment == Cluster.TOP:
+            return Cluster.BOTTOM
+        elif segment == Cluster.LEFT:
+            return Cluster.RIGHT
+        elif segment == Cluster.RIGHT:
+            return Cluster.LEFT
+
+    def segment_start_stop(self, segment):
+        if segment == Cluster.BOTTOM:
+            start = Vector(self.coords[0][0], self.coords[1][1])
+            stop = Vector(self.coords[1][0], self.coords[1][1])
+        elif segment == Cluster.TOP:
+            start = Vector(self.coords[0][0], self.coords[0][1])
+            stop = Vector(self.coords[1][0], self.coords[1][1])
+        elif segment == Cluster.LEFT:
+            start = Vector(self.coords[0][0], self.coords[0][1])
+            stop = Vector(self.coords[0][0], self.coords[1][1])
+        elif segment == Cluster.RIGHT:
+            start = Vector(self.coords[1][0], self.coords[0][1])
+            stop = Vector(self.coords[1][0], self.coords[1][1])
+        return start, stop
+
+    def segment_intersection(self, segment, obj):
+        start, stop = self.segment_start_stop(segment)
+        pos, r = obj
+        print "Testing:", start, stop, pos, r
+        return intersection(start, stop, pos, r)
 
     def any_inside(self, obj):
         pos, r = obj
@@ -76,12 +108,13 @@ class Map(object):
                 added_to.append(c)
         for c1 in added_to:
             for c2 in added_to:
-                side = c1.adjacent(c2)
-                if side:
-                    self.update_entrances(c1, c2, side, obj) 
+                segment = c1.adjacent(c2)
+                if segment:
+                    self.update_entrances(c1, c2, segment, obj) 
 
-    def update_entrances(self, c1, c2, side, obj):
-        
+    def update_entrances(self, c1, c2, segment, obj):
+        isect = c1.segment_intersection(segment, obj)
+        print isect
         pass
 
     def _build_clusters(self):
