@@ -74,8 +74,9 @@ def update_rover(rover, state, time):
     rover.update(time, state.ctl_acc, state.ctl_turn, pos, direction, state.speed)
     return
     
-def simulate(rover, state, maxtime):
+def simulate(rover, state, maxtime, path):
     t = 0.0
+    goal = Vector(path[-1])
     controller = strategies.PidPathFollower(rover, 10.0, 0.0, 1.0)
     rover.strategy = controller
     update_rover(rover, state, 1000 * t)
@@ -92,6 +93,9 @@ def simulate(rover, state, maxtime):
                 ctl_turn = cmd[-1]
         state.update(ctl_acc, ctl_turn)
         update_rover(rover, state, 1000 * t)
+        if abs(goal - Vector(rover.pos)) < 5.0:
+            print 'Reached goal. Time =', t
+            break
         t += TIME_STEP
     return
     
@@ -141,8 +145,18 @@ if __name__ == '__main__':
     rotacc_rad = math.radians(rotacc)
     rover = world.Rover(DummyWorld(), minsensor, maxsensor, maxspeed, maxturn, maxhardturn)
     state = State(pos, direction, maxspeed, acc, brake, maxturn_rad, maxhardturn_rad, rotacc_rad)
-    path = [(0.0, 0.0), (200.0, 50.0), (200.0, 100.0), (150.0, 150.0), (-150.0, 150.0), (-200.0, 100.0), (-200.0, -200.0)]
+    path = [(0.0, 0.0), 
+            (200.0, 50.0), 
+            (200.0, 100.0), 
+            (150.0, 150.0), 
+            (-150.0, 150.0), 
+            (-200.0, 100.0), 
+            (-200.0, -150.0),
+            (200.0, -150.0),
+            (200.0, -75.0),
+            (-100.0, -100.0),
+            (-50.0, 100.0)]
     rover.path = strategies.Path(path)
-    simulate(rover, state, 200.0)
+    simulate(rover, state, 300.0, path)
     write_svg('testcontrol.svg', get_svg(rover, create_path_svg(path)))
     
