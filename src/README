@@ -1,0 +1,16 @@
+Pure python implementation, no libraries other than stdlib
+
+src/astarpath.py - A*-algorithm, not used
+src/client.py - Network code
+src/distance.py - Failed attempt at creating search nodes for A* using euclidian distance transform, not used
+src/hpa.py - Unfinished Hierarchical A*, not used
+src/json.py - json library to read maps, only used in test code
+src/msgparser.py - Communication parser
+src/nearest.py - Node-finder for A*, not used
+src/path.py - Path-finding algoritm
+src/strategies.py - Path-following algoritms
+src/testcontrol.py - Test for path-followers, only used for test
+src/testpath.py - Tast for path-finders, only used for test
+src/testserver.py - Communication test, only used for test
+src/vector.py - Vector utilities
+src/world.py - World state
