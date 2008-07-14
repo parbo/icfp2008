@@ -243,7 +243,7 @@ class PidPathFollower(BaseStrategy):
         
         diff = wanted_turn_rate - estimated_turn_rate
         
-        print diff, wanted_turn_rate, estimated_turn_rate
+        #print diff, wanted_turn_rate, estimated_turn_rate
         
         if wanted_turn_rate == self.maxhardturn:
             # Max turn left.

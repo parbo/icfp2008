@@ -82,6 +82,7 @@ class Rover(object):
         self.maxhardturn = maxhardturn
         self.acceleration = None
         self.retardation = None
+        self.drag = None
         self.path = None
         self.radius = 0.5
         self.time = 0.0
@@ -111,16 +112,20 @@ class Rover(object):
         return svg
 
     def update(self, time, ctl_acc, ctl_turn, pos, direction, speed):
+        dt = 0.001 * (time - self.time)
         if self.old != None:
             self.old.append((self.ctl_acc, self.ctl_turn, self.pos, self.direction, self.speed))
         else:
             self.old = []
         if (self.acceleration is None) and ctl_acc == 'a':
             if self.speed > 0.1 * self.maxspeed:
-                self.acceleration = 1000.0 * (speed - self.speed) / (time - self.time)
+                acceleration = (speed - self.speed) / dt
+                self.drag = acceleration / (self.maxspeed ** 2 - speed ** 2)
+                print 'Calculated drag coefficient =', self.drag
+                self.acceleration = self.drag * self.maxspeed ** 2
                 print 'Calculated acceleration =', self.acceleration
-        if (self.retardation is None) and (ctl_acc == 'b') and (speed - self.speed) < 0:
-            self.retardation = 1000.0 * (speed - self.speed) / (time - self.time)
+        if (self.retardation is None) and (ctl_acc == 'b') and (speed - self.speed) < 0 and (self.drag is not None):
+            self.retardation = (speed - self.speed) / dt + self.drag * speed ** 2
             print 'Calculated retardation =', self.retardation
         self.time = time
         self.ctl_acc = ctl_acc
