@@ -203,12 +203,13 @@ class World(object):
         self.currentobjects = []
 
     def reset(self):
-        f = open("map_%d.svg" % self.runs, "w")
-        f.write("".join(self.get_svg()))
+        #f = open("map_%d.svg" % self.runs, "w")
+        #f.write("".join(self.get_svg()))
         self.martians = []
         self.old_martians = []
         self.rover.reset()
         self.runs += 1
+        print "Completed run", self.runs
 
     def find_martian(self, pos, time):
         x, y = pos

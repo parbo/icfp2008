@@ -87,7 +87,7 @@ class BaseStrategy(object):
                     try:
                         d = math.sqrt(v2 * v2 - projd ** 2)
                     except ValueError, e:
-                        print v2 * v2, projd
+                        #print v2 * v2, projd
                         continue
                     maxr = rover.speed / math.radians(rover.maxhardturn)
                     if d < 2 * maxr:
@@ -381,9 +381,9 @@ class PidPathFollower(BaseStrategy):
                     brake_distance = -0.5 * (self.rover.speed ** 2 - turn_speed_limit ** 2) / self.rover.retardation
                 except ZeroDivisionError:
                     brake_distance = 0.0
-                print target_distance, brake_distance
+                #print target_distance, brake_distance
                 if target_distance < brake_distance:
-                    print 'Approaching target - braking.'
+                    #print 'Approaching target - braking.'
                     speed_cmd = 'b'
                 
         self.target_distance = target_distance
@@ -443,7 +443,7 @@ class PidPathFollower(BaseStrategy):
         
         if deleted_node:
             self.errint = 0.0
-            print '***** New segment *****'
+            #print '***** New segment *****'
             self.current_speed_ctrl = SPEED_CTRL_TURN
             self.target_distance = None
             
