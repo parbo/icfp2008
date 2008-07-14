@@ -3,9 +3,9 @@
 mkdir icfp08
 mkdir icfp08/bin
 mkdir icfp08/src
-cp bin/* icfp08/
-cp src/*.py icfp08/
-cp src/README icfp08/
+cp bin/run icfp08/bin/
+cp src/*.py icfp08/src/
+cp src/README icfp08/src/
 cp team icfp08/
 cp contact icfp08/
 tar czf icfp08.tgz icfp08
