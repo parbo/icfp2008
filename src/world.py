@@ -97,6 +97,7 @@ class Rover(object):
         self.old_paths = []
         self.calc_needed = True
         self.path_needed = True
+        self.strategy.reset()
 
     def get_svg(self):
         svg = ["<polyline fill=\"none\" stroke=\"blue\" stroke-width=\"1\" points=\""]

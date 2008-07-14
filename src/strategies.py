@@ -5,6 +5,8 @@ import path
 import astarpath
 import world
 
+CLEAR_WAYPOINT_DIST = 5.0
+
 class Path(object):
     def __init__(self, points):
         self.points = points
@@ -42,6 +44,9 @@ def martian_cost(r, d):
     return max(k * abs(d) + m, 0.0)
 
 class BaseStrategy(object):
+    def reset(self):
+        return
+        
     def calc_path(self, rover):
         return Path([rover.pos, (0.0, 0.0)])
 
@@ -49,7 +54,7 @@ class BaseStrategy(object):
         return ""
 
     def calc_angle(self, rover):
-        deleted_node, seg = rover.path.current_segment(rover.pos, 4.0)
+        deleted_node, seg = rover.path.current_segment(rover.pos, CLEAR_WAYPOINT_DIST ** 2)
         wp = seg[1]
         #print wp
         rdir = math.radians(rover.direction)
@@ -178,6 +183,21 @@ class PidPathFollower(BaseStrategy):
         self.current_turn_rate = 0.0  # Calculated rate of turn [radians / s]
         self.current_speed_ctrl = SPEED_CTRL_ACC
         self.maxturnradius = rover.maxspeed / rover.maxhardturn
+        self.speed_limit = 0.0
+        self.target_distance = None
+        self.safe_turn_speed = 0.8 * CLEAR_WAYPOINT_DIST * self.maxhardturn
+        return
+        
+    def reset(self):
+        self.errint = 0.0
+        self.last_ang_err = 0.0
+        self.time = 0.0
+        self.ctl_acc = ''
+        self.prev_direction = None
+        self.est_ang_acc = 0.0      # Estimated angular acceleration [radians / s^2]
+        self.current_turn = ''
+        self.current_turn_rate = 0.0  # Calculated rate of turn [radians / s]
+        self.current_speed_ctrl = SPEED_CTRL_ACC
         self.speed_limit = 0.0
         self.target_distance = None
         return
@@ -312,7 +332,7 @@ class PidPathFollower(BaseStrategy):
                 self.current_speed_ctrl = SPEED_CTRL_BRAKE_CALIB
                 speed_cmd = 'b'
             elif self.target_distance is not None:
-                if target_distance > self.target_distance:
+                if (target_distance > self.target_distance) and (self.rover.speed > self.safe_turn_speed):
                     # Distance to target increasing.
                     self.current_speed_ctrl = SPEED_CTRL_BRAKE_TGT
                     speed_cmd = 'b'
@@ -345,7 +365,7 @@ class PidPathFollower(BaseStrategy):
         nowvec = Vector(x, y)
         dr = math.radians(rover.direction)
         dirvec = Vector(math.cos(dr), math.sin(dr))
-        deleted_node, seg = rover.path.current_segment(rover.pos, 4.0)
+        deleted_node, seg = rover.path.current_segment(rover.pos, CLEAR_WAYPOINT_DIST ** 2)
         x1, y1 = seg[0]
         x2, y2 = seg[1]
         goalvec = Vector(x2, y2)
