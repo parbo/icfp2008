@@ -151,7 +151,7 @@ class Rover(object):
                 self.acceleration = self.drag * self.maxspeed ** 2
                 print 'Calculated acceleration =', self.acceleration
         if (self.retardation is None) and (ctl_acc == 'b') and (speed - self.speed) < 0 and (self.drag is not None):
-            self.retardation = (speed - self.speed) / dt + self.drag * speed ** 2
+            self.retardation = min((speed - self.speed) / dt + self.drag * speed ** 2, -0.1)
             print 'Calculated retardation =', self.retardation
         self.time = time
         self.ctl_acc = ctl_acc
@@ -162,7 +162,7 @@ class Rover(object):
         self.calc_needed = True
         if self.path:
             if self.path.distance(pos) > 10.0:
-                print "Calculating new path!"
+                #print "Calculating new path!"
                 self.schedule_calc_path()
 
     def schedule_calc_path(self):
