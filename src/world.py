@@ -145,7 +145,7 @@ class Rover(object):
             return ""
         cmd = self.strategy.calc_command(self)
         self.calc_needed = False #True
-        print cmd
+        #print cmd
         return cmd
         
 class World(object):

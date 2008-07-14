@@ -76,7 +76,7 @@ class BaseStrategy(object):
         wpcost = cost_fcn(wpvec)
         # if wpvec is good enough
         if wpcost < 0.9:
-            print "WP is good enough"
+            #print "WP is good enough"
             return dirvec.angle_signed(wpvec)
 
         num = 10
@@ -94,7 +94,7 @@ class BaseStrategy(object):
         costs.sort()
         c, a, v = costs[0]
         if v != dirvec:
-            print "selecting:", v, c, wpcost
+            #print "selecting:", v, c, wpcost
             return dirvec.angle_signed(v)
         return 0.0
 
@@ -372,7 +372,7 @@ class PidPathFollower(BaseStrategy):
         wanted_turn_rate = self.calc_wanted_ang_vel(a, dt)
         new_turn_cmd = self.calc_turn_command(wanted_turn_rate, dt)
                 
-        print wanted_turn_rate / self.maxhardturn
+        #print wanted_turn_rate / self.maxhardturn
                 
         self.ctl_acc = new_acc_cmd
         
