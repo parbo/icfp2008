@@ -176,7 +176,7 @@ class PidPathFollower(BaseStrategy):
         self.maxhardturn = math.radians(rover.maxhardturn)
         self.current_turn = ''
         self.current_turn_rate = 0.0  # Calculated rate of turn [radians / s]
-        self.current_speed_ctrl = 'a'
+        self.current_speed_ctrl = SPEED_CTRL_ACC
         self.maxturnradius = rover.maxspeed / rover.maxhardturn
         self.speed_limit = 0.0
         self.target_distance = None
