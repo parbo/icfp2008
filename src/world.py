@@ -1,5 +1,6 @@
 import math
 import strategies
+from vector import Vector
 
 class Area(object):
     def __init__(self, dx, dy):
@@ -10,10 +11,24 @@ class Area(object):
         self.bottom = -dy/2.0
         self.top = dy/2.0
 
+    def __str__(self):
+        return "Area(%f, %f)"%(self.dx, self.dy)
+
+class Home(object):
+    def __init__(self, pos, radius):
+        self.pos = pos
+        self.radius = radius
+
+    def __str__(self):
+        return "Home((%f, %f), %f)"%(self.pos[0], self.pos[1], self.radius)
+
 class Boulder(object):
     def __init__(self, pos, radius):
         self.pos = pos
         self.radius = radius
+
+    def __str__(self):
+        return "Boulder((%f, %f), %f)"%(self.pos[0], self.pos[1], self.radius)
 
     def get_svg(self):
         x, y = self.pos
@@ -24,6 +39,9 @@ class Crater(object):
         self.pos = pos
         self.radius = radius
 
+    def __str__(self):
+        return "Crater((%f, %f), %f)"%(self.pos[0], self.pos[1], self.radius)
+
     def get_svg(self):
         x, y = self.pos
         return ["<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#00ff00")]
@@ -33,6 +51,9 @@ class Martian(object):
         self.positions = []
         self.radius = 0.5
         self.update(pos, speed, direction, time)    
+
+    def __str__(self):
+        return "Martian((%f, %f), %f, %f, %f)"%(self.pos[0], self.pos[1], self.radius, self.speed, self.direction)
 
     def get_svg(self):
         svg = ["<polyline fill=\"none\" stroke=\"red\" stroke-width=\"1\" points=\""]
@@ -96,8 +117,13 @@ class Rover(object):
         self.path = None
         self.old = None
         self.old_paths = []
-        self.calc_needed = True
+        self.calc_needed = False
         self.path_needed = True
+        self.ctl_acc = 0
+        self.ctl_turn = 0
+        self.pos = None
+        self.direction = 0
+        self.speed = 0
         self.time = 0.0
         self.strategy.reset()
 
@@ -134,6 +160,10 @@ class Rover(object):
         self.direction = direction
         self.speed = speed
         self.calc_needed = True
+        if self.path:
+            if self.path.distance(pos) > 10.0:
+                print "Calculating new path!"
+                self.schedule_calc_path()
 
     def schedule_calc_path(self):
         self.path_needed = True
@@ -143,11 +173,11 @@ class Rover(object):
         
     def calc_command(self):
         if self.path_needed:
-            self.old_paths.append(self.path)
-            self.path = self.strategy.calc_path(self)
-            #print self.path.points
-            self.path_needed = False
-        if not self.calc_needed or self.path == None:
+            if self.pos != None:
+                self.old_paths.append(self.path)
+                self.path = self.strategy.calc_path(self)
+                self.path_needed = False
+        if not self.calc_needed or self.path == None or self.pos == None:
             #print "no calc needed"
             return ""
         cmd = self.strategy.calc_command(self)
@@ -213,6 +243,14 @@ class World(object):
                           tmsg.vehicle_speed)
         self.time = tmsg.time
         self.currentobjects = []
+        if tmsg.home:
+            x, y, radius = tmsg.home
+            self.currentobjects.append(Home((x, y), radius))
+            dhome = abs(Vector(self.rover.pos) - Vector(0.0, 0.0))
+            if dhome < 5.0:
+                # Home!
+                print "Reached home!"
+                return
         for b in tmsg.boulders:
             x, y, radius = b
             self.currentobjects.append(Boulder((x, y), radius))

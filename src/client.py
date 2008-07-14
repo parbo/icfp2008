@@ -3,7 +3,7 @@ import Queue
 import threading
 import msgparser as mp
 import world
-import time
+import timeit
 
 class RoverControl(object):
     def __init__(self, host, port):
@@ -11,40 +11,37 @@ class RoverControl(object):
         self.world = None
 
     def _control(self):
-        if self.world and self.world.rover and self.world.rover.ok():
-            c = self.world.rover.calc_command()
-            if c:
-                #print c
-                self.roverclient.sendq.put(c)
-
-    def _run_control(self):
-        print "Start control thread"
         rc = self.roverclient
         try:
-            while rc.running:
-                self._control()
-                #time.sleep(0.5)
-        except Exception, e:
-            print e
-            raise
+            c = self.world.rover.calc_command()
+            if c:
+                rc.sendq.put(c)
+        except AttributeError, e:
+            # world not initialised yet
+            pass
+
+    def _telemetry(self):
+        rc = self.roverclient
+        ctr = 0
+        try:
+            while True:
+                msg = rc.recvq.get(False)
+                ctr += 1
+                #print msg
+                m = mp.parse(msg)
+                self.update_world(m)
+        except Queue.Empty:
+            if ctr > 1:
+                print "Processed %d telemetry messages" % ctr
+            ctr = 0
+            pass
 
     def run(self):
         rc = self.roverclient
         rc.start()
-        #self.controlthread = threading.Thread(target=self._run_control)
-        #self.controlthread.setDaemon(True)
-        #self.controlthread.start()
         while rc.running:
-            try:
-                while True:
-                    msg = rc.recvq.get(False)
-                    #print msg
-                    m = mp.parse(msg)
-                    self.update_world(m)
-            except Queue.Empty:
-                pass
+            self._telemetry()
             self._control()
-        #self.controlthread.join()
         rc.stop()
 
     def update_world(self, m):
@@ -115,5 +112,11 @@ class RoverClient(object):
 
 if __name__=="__main__":
     import sys
+#     try:
+#         import psyco
+#         psyco.full()
+#         print "Using Psyco"
+#     except:
+#         pass
     r = RoverControl(sys.argv[1], int(sys.argv[2]))
     r.run()    

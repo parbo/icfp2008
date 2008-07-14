@@ -5,7 +5,19 @@ import path
 import astarpath
 import world
 
+
+eps = 1e-7
+
+
 CLEAR_WAYPOINT_DIST = 5.0
+
+
+def distance_to_segment(start, end, pos):
+    v2 = Vector(pos) - Vector(start)
+    v = (Vector(end) - Vector(start)).normalize()
+    projd = v2 * v
+    return math.sqrt(v2 * v2 - projd ** 2)
+
 
 class Path(object):
     def __init__(self, points):
@@ -27,24 +39,23 @@ class Path(object):
             next_seg = self.points[1:3]
         return (deleted_node, self.points[0:2], next_seg)
 
-def boulder_cost(r, d):
-    if abs(d) < r:
-        return 1.0
-    m = r + 1
-    k = -1
-    return max(k * abs(d) + m, 0.0)
-def crater_cost(r, d):
-    if abs(d) < r:
-        return 1.0
-    m = r + 1
-    k = -1
-    return max(k * abs(d) + m, 0.0)
-def martian_cost(r, d):
-    if abs(d) < r:
-        return 1.0
-    m = r + 1
-    k = -1
-    return max(k * abs(d) + m, 0.0)
+    def distance(self, pos):
+        return distance_to_segment(self.points[0], self.points[1], pos)
+    
+def cost_fcn_factory(maxcost, sigma):
+    def fcn(r, d):
+        if abs(d) < r:
+            return maxcost
+        return maxcost * math.e ** ((-(d - r) ** 2) / (2 * sigma ** 2))
+    return fcn
+
+boulder_cost = cost_fcn_factory(10.0, 2.0)
+crater_cost = cost_fcn_factory(10.0, 2.0)
+martian_cost = cost_fcn_factory(40.0, 3.0)
+home_cost = cost_fcn_factory(5.0, 3.0)
+
+def angle_cost(r, a):
+    return 0.0 * r * (a ** 3)
 
 class BaseStrategy(object):
     def reset(self):
@@ -67,32 +78,50 @@ class BaseStrategy(object):
             return dirvec.angle_signed(wpvec)
         
         def cost_fcn(v):
-            cost = 0
+            cost = 0.0
+            # Calculate cost for obstacles
             for obj in rover.world.currentobjects:
                 v2 = Vector(obj.pos) - Vector(rover.pos)
                 projd = v2 * v
                 if projd > 0.0:
-                    d = math.sqrt(v2 * v2 - projd ** 2)
+                    try:
+                        d = math.sqrt(v2 * v2 - projd ** 2)
+                    except ValueError, e:
+                        print v2 * v2, projd
+                        continue
+                    maxr = rover.speed / math.radians(rover.maxhardturn)
+                    if d < 2 * maxr:
+                        scale = 1.0
+                    else:
+                        scale = math.e ** ((-(projd - 2 * maxr) ** 2) / (2 * 50.0 ** 2))
+                    oc = 0.0
                     if isinstance(obj, world.Boulder):
-                        cost += boulder_cost(obj.radius, d) #/ (projd + 1.0)
-                    if isinstance(obj, world.Crater):
-                        cost += crater_cost(obj.radius, d) #/ (projd + 1.0)
-                    if isinstance(obj, world.Martian):
-                        cost += martian_cost(obj.radius, d) #/ (projd + 1.0)
+                        oc = boulder_cost(obj.radius, d) * scale
+                    elif isinstance(obj, world.Crater):
+                        oc = crater_cost(obj.radius, d)  * scale
+                    elif isinstance(obj, world.Martian):
+                        oc = martian_cost(obj.radius, d) * scale
+                    elif isinstance(obj, world.Home):
+                        oc = -martian_cost(obj.radius, d) * scale
+                    cost += oc
+            # Calculate cost for angle change
+            ac = angle_cost(rover.speed / math.radians(rover.maxhardturn), dirvec.angle(v))
+            cost += ac
             return cost
 
         wpcost = cost_fcn(wpvec)
         # if wpvec is good enough
-        if wpcost < 0.9:
+        #print "WPCOST:", wpcost
+        if wpcost < 0.1:
             #print "WP is good enough"
             return dirvec.angle_signed(wpvec)
 
         num = 10
         testvec = []
         for i in range(1, num):
-            a = i * 10.0 / (num - 1)
-            testvec.append((a, wpvec.rotate(math.radians(a))))
-            testvec.append((a, wpvec.rotate(math.radians(-a))))
+            a = i * (math.pi / 8) / (num - 1)
+            testvec.append((a, wpvec.rotate(a)))
+            testvec.append((a, wpvec.rotate(-a)))
 
         costs = [(wpcost, 0, wpvec)]
         for a, v in testvec:
@@ -100,6 +129,7 @@ class BaseStrategy(object):
             costs.append((cost, a, v))
             
         costs.sort()
+        #print "MINC:", costs[0][0], "MAXC:", costs[-1][0]
         c, a, v = costs[0]
         if v != dirvec:
             #print "selecting:", v, c, wpcost
@@ -209,6 +239,7 @@ class PidPathFollower(BaseStrategy):
         
     def calc_path(self, rover):
         return Path(path.find_path(rover.pos, (0.0, 0.0), rover.world))
+        #return Path([rover.pos, (0.0, 0.0)])
         
     def calc_wanted_ang_vel(self, ang_err, dt):
         # Turn control.
