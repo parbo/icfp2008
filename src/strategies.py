@@ -381,7 +381,7 @@ class PidPathFollower(BaseStrategy):
                     brake_distance = -0.5 * (self.rover.speed ** 2 - turn_speed_limit ** 2) / self.rover.retardation
                 except ZeroDivisionError:
                     brake_distance = 0.0
-                #print target_distance, brake_distance
+                print target_distance, brake_distance
                 if target_distance < brake_distance:
                     print 'Approaching target - braking.'
                     speed_cmd = 'b'

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+python src/client.py $1 $2

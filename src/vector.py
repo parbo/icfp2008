@@ -58,6 +58,9 @@ class Vector(object):
     def point(self):
         return (self.x, self.y)           
 
+ITYPE_ENTER = 0
+ITYPE_EXIT = 1
+
 def intersection(start_vector, goal_vector, center, radius):
     xc, yc = center
     # Vector pointing at center:
@@ -80,9 +83,9 @@ def intersection(start_vector, goal_vector, center, radius):
     lvsg = abs(vsg)
     intersections = []
     if s - q < lvsg:
-        intersections.append(s - q)
+        intersections.append((s - q, ITYPE_ENTER))
     if s + q < lvsg:
-        intersections.append(s + q)
+        intersections.append((s + q, ITYPE_EXIT))
     return intersections
 
 if __name__ == '__main__':

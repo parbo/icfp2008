@@ -69,12 +69,20 @@ def find_neighbour_nodes(node, closedlist, nodes, obstacles):
 #                  f_score[y] := g_score[y] + h_score[y] % Estimated total distance from start to goal through y.
 #      return failure
 
+BUDGET = 1000
 def find_path(start, goal, world):
     # Solve problem using A* algorithm.
     allnodes, obstacles = nearest.create_nodes_obstacles(world)    
     allnodes.append(goal)
 
     came_from = {}
+    def reconstruct_path(node):
+        path = [node]
+        while node in came_from:
+            node = came_from[node]
+            path.append(node)
+        path.reverse()
+        return path
 
     closedlist = set()
     openlist = set()
@@ -84,22 +92,20 @@ def find_path(start, goal, world):
     g_score = {}
     g_score[start] = 0    
     h_score = {}
-    while openlist:
+    ctr = 0
+    while openlist and ctr < 4:
+        ctr += 1
         v, node = heapq.heappop(queue)
         if node in closedlist:
             continue
         openlist.remove(node)
         if node == goal:
-            path = [node]
-            while node in came_from:
-                node = came_from[node]
-                path.append(node)
-            path.reverse()
+            path = reconstruct_path(node)
+            print "Returning complete path", len(path), ctr
             print path
             return path
         closedlist.add(node)
         nb = find_neighbour_nodes(node, closedlist, allnodes, obstacles)
-        print len(nb)
         for n in nb:
             # closedlist is checked in find_neighbour_nodes instead of here
             t_g_score = g_score[node] + abs(Vector(node) - Vector(n))
@@ -116,5 +122,12 @@ def find_path(start, goal, world):
                 f_score = t_g_score + h_score[n]
                 heapq.heappush(queue, (f_score, n))
                 openlist.add(n)                
+    if openlist:
+        v, node = heapq.heappop(queue)
+        path = reconstruct_path(node)
+        path.append(goal)
+        print "Returning incomplete path", len(path), ctr
+        print path
+        return path        
     return []
                     

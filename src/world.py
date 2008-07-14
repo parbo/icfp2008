@@ -32,7 +32,7 @@ class Boulder(object):
 
     def get_svg(self):
         x, y = self.pos
-        return ["<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#ff0000")]
+        return ["<circle cx=\"%f\" cy=\"%f\" r=\"%f\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#ff0000")]
 
 class Crater(object):
     def __init__(self, pos, radius):
@@ -44,7 +44,7 @@ class Crater(object):
 
     def get_svg(self):
         x, y = self.pos
-        return ["<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#00ff00")]
+        return ["<circle cx=\"%f\" cy=\"%f\" r=\"%f\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#00ff00")]
 
 class Martian(object):
     def __init__(self, pos, speed, direction, time):
@@ -62,7 +62,7 @@ class Martian(object):
             svg.append("%f, %f " % (x, y))
         svg.append("\" />")
         x, y = self.pos
-        svg.append("<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#0000ff"))
+        svg.append("<circle cx=\"%f\" cy=\"%f\" r=\"%f\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#0000ff"))
         return svg
 
     def update(self, pos, speed, direction, time):
@@ -134,7 +134,7 @@ class Rover(object):
             svg.append("%f, %f " % (x, y))
         svg.append("\" />")
         x, y = self.pos
-        svg.append("<circle cx=\"%d\" cy=\"%d\" r=\"%d\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#ffff00"))
+        svg.append("<circle cx=\"%f\" cy=\"%f\" r=\"%f\" style=\"fill:%s;\" />\n" % (x, y, self.radius, "#ffff00"))
         return svg
 
     def update(self, time, ctl_acc, ctl_turn, pos, direction, speed):

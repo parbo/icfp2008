@@ -2,7 +2,7 @@
   CLOCK: [2008-07-11 Fri 21:07]--[2008-07-11 Fri 21:44] =>  0:37
 
 * The task is to design a control algorithm for a Mars rover
-  CLOCK: [2008-07-11 Fri 21:44]
+  CLOCK: [2008-07-11 Fri 21:44]--[2008-07-12 Sat 01:11] =>  3:27
 ** Our breakdown
 ***   Communication
 ***   Telemetry parser
@@ -14,3 +14,7 @@
 **** Map and rover
 **** Path finding
 *** World description
+
+* Going to bed..
+  CLOCK: [2008-07-12 Sat 01:11]--[2008-07-12 Sat 01:11] =>  0:00
+
