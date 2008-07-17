@@ -54,6 +54,7 @@ def astar(start, goal, g_fcn, h_fcn, find_neighbours_fcn):
 
 
 if __name__=="__main__":
+    import math
     def testworld(world):
         world = [list(s) for s in world]
         def g(n1, n2):
@@ -73,7 +74,7 @@ if __name__=="__main__":
             def h(n):
                 x, y = n
                 gx, gy = goal
-                return abs(x - gx) + abs(y - gy)
+                return math.sqrt((x - gx)**2 + (y - gy)**2)
             return h
         def find(w, sym):
             for y, row in enumerate(w):
@@ -110,7 +111,7 @@ if __name__=="__main__":
                "*                        *",
                "**************************"])
     testworld(["**************************",
-               "*                 s      *",
+               "* s                      *",
                "*                        *",
                "*                        *",
                "*     ********************",
@@ -118,5 +119,5 @@ if __name__=="__main__":
                "*                        *",
                "***********   ************",
                "*                        *",
-               "*                       g*",
+               "*                   g    *",
                "**************************"])
